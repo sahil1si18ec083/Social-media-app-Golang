@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
 )
 
@@ -41,4 +43,26 @@ func (a *application) createPostHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	// app.store.Posts.Create(r.Context(), &store.Post{})
+}
+
+func (a *application) GetPostHandler(w http.ResponseWriter, r *http.Request) {
+	postID := chi.URLParam(r, "postID")
+	fmt.Println(postID)
+	rcontext := r.Context()
+
+	post, err := a.store.Posts.GetById(rcontext, postID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			writeJSONError(w, http.StatusNotFound, err)
+			return
+		}
+		writeJSONError(w, http.StatusInternalServerError, err)
+		return
+	}
+	err = writeJSON(w, http.StatusOK, post)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err)
+		return
+	}
+
 }
