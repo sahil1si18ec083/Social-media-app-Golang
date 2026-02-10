@@ -1,0 +1,3 @@
+-- This file is intentionally left blank.
+-- Database and user creation is handled by environment variables in docker-compose.yml.
+-- You can add table creation scripts here later, e.g., CREATE TABLE users (...);

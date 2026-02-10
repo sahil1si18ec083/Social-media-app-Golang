@@ -7,14 +7,22 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
 )
 
 type application struct {
 	config config
+	store  store.Storage
 }
-
+type dbConfig struct {
+	addr         string
+	maxOpenConns int
+	maxIdleConns int
+	maxIdleTime  string
+}
 type config struct {
 	addr string
+	db   dbConfig
 }
 
 func (app *application) mount() http.Handler {
@@ -25,7 +33,11 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
-	r.Get("/v1/health", app.healthCheckHandler)
+	r.Route("/v1", func(r chi.Router) {
+		r.Get("/health", app.healthCheckHandler)
+		r.Post("/posts", app.createPostHandler)
+	})
+
 	return r
 }
 
