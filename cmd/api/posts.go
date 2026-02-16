@@ -14,6 +14,9 @@ type CreatePostPayload struct {
 	Content string   `json:"content" validate:"required,max=1000"`
 	Tags    []string `json:"tags"`
 }
+type DeletePostResponse struct {
+	Message string `json:"message"`
+}
 
 func (a *application) createPostHandler(w http.ResponseWriter, r *http.Request) {
 	// userId := 1
@@ -75,6 +78,30 @@ func (a *application) GetPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	post.Comment = *comments
 	err = writeJSON(w, http.StatusOK, post)
+	if err != nil {
+		a.internalServerError(w, r, err)
+		return
+	}
+
+}
+
+func (a *application) DeletePostHandler(w http.ResponseWriter, r *http.Request) {
+	postID := chi.URLParam(r, "postID")
+	fmt.Println(postID)
+	rcontext := r.Context()
+
+	err := a.store.Posts.Delete(rcontext, postID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			a.notFoundResponse(w, r, err)
+			return
+		}
+
+		a.internalServerError(w, r, err)
+		return
+	}
+
+	err = writeJSON(w, http.StatusOK, DeletePostResponse{Message: "Post Deleted Successfully"})
 	if err != nil {
 		a.internalServerError(w, r, err)
 		return
