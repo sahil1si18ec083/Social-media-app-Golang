@@ -10,8 +10,8 @@ import (
 )
 
 type CreatePostPayload struct {
-	Title   string   `json:"title"`
-	Content string   `json:"content"`
+	Title   string   `json:"title" validate:"required,max=100"`
+	Content string   `json:"content" validate:"required,max=1000"`
 	Tags    []string `json:"tags"`
 }
 
@@ -23,7 +23,13 @@ func (a *application) createPostHandler(w http.ResponseWriter, r *http.Request) 
 	err := readJSON(w, r, &payload)
 	if err != nil {
 		fmt.Println(err)
-		writeJSONError(w, http.StatusBadRequest, err)
+		a.badRequestResponse(w, r, err)
+		return
+	}
+	err = Validate.Struct(&payload)
+	if err != nil {
+		fmt.Println(err)
+		a.badRequestResponse(w, r, err)
 		return
 	}
 	post := &store.Post{Title: payload.Title, Content: payload.Content,
@@ -34,12 +40,12 @@ func (a *application) createPostHandler(w http.ResponseWriter, r *http.Request) 
 	rcontext := r.Context()
 	err = a.store.Posts.Create(rcontext, post)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, err)
+		a.internalServerError(w, r, err)
 		return
 	}
 	err = writeJSON(w, http.StatusCreated, post)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, err)
+		a.internalServerError(w, r, err)
 		return
 	}
 	// app.store.Posts.Create(r.Context(), &store.Post{})
@@ -53,15 +59,16 @@ func (a *application) GetPostHandler(w http.ResponseWriter, r *http.Request) {
 	post, err := a.store.Posts.GetById(rcontext, postID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			writeJSONError(w, http.StatusNotFound, err)
+			a.notFoundResponse(w, r, err)
 			return
 		}
-		writeJSONError(w, http.StatusInternalServerError, err)
+
+		a.internalServerError(w, r, err)
 		return
 	}
 	err = writeJSON(w, http.StatusOK, post)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, err)
+		a.internalServerError(w, r, err)
 		return
 	}
 
