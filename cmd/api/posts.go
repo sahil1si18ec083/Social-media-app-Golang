@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -8,6 +9,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
 )
+
+type contextKey string
+
+const postContextKey = contextKey("post")
 
 type CreatePostPayload struct {
 	Title   string   `json:"title" validate:"required,max=100"`
@@ -60,19 +65,13 @@ func (a *application) GetPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	rcontext := r.Context()
 
-	post, err := a.store.Posts.GetById(rcontext, postID)
-	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			a.notFoundResponse(w, r, err)
-			return
-		}
-
-		a.internalServerError(w, r, err)
-		return
+	post, ok := getPostFromContext(rcontext)
+	if !ok {
+		a.internalServerError(w, r, errors.New("post missing from context"))
+		return // VERY IMPORTANT
 	}
 	comments, err := a.store.Comments.GetByPostId(rcontext, postID)
 	if err != nil {
-		// for future
 		a.internalServerError(w, r, err)
 		return
 
@@ -117,19 +116,14 @@ func (a *application) UpdatePostHandler(w http.ResponseWriter, r *http.Request) 
 	postID := chi.URLParam(r, "postID")
 	rcontext := r.Context()
 
-	post, err := a.store.Posts.GetById(rcontext, postID)
-	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			a.notFoundResponse(w, r, err)
-			return
-		}
-
-		a.internalServerError(w, r, err)
-		return
+	post, ok := getPostFromContext(rcontext)
+	if !ok {
+		a.internalServerError(w, r, errors.New("post missing from context"))
+		return // VERY IMPORTANT
 	}
 	var payload UpdatePostPayload
 
-	err = readJSON(w, r, &payload)
+	err := readJSON(w, r, &payload)
 	if err != nil {
 
 		if !errors.Is(err, io.EOF) {
@@ -173,4 +167,37 @@ func (a *application) UpdatePostHandler(w http.ResponseWriter, r *http.Request) 
 		a.internalServerError(w, r, err)
 		return
 	}
+}
+
+func (a *application) postsContextMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		postID := chi.URLParam(r, "postID")
+		post, err := a.store.Posts.GetById(r.Context(), postID)
+		if err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				a.notFoundResponse(w, r, err)
+				return
+			}
+
+			a.internalServerError(w, r, err)
+			return
+		}
+		ctx := context.WithValue(r.Context(), postContextKey, post)
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+
+}
+
+func getPostFromContext(ctx context.Context) (*store.Post, bool) {
+
+	post, ok := ctx.Value(postContextKey).(*store.Post)
+	if post == nil {
+		return nil, false
+	}
+	if !ok {
+		return nil, false
+	}
+	return post, true
+
 }
