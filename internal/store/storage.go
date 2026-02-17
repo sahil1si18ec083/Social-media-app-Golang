@@ -10,6 +10,7 @@ type Storage struct {
 		Create(context.Context, *Post) error
 		GetById(context.Context, string) (*Post, error)
 		Delete(context.Context, string) error
+		Update(context.Context, *Post, string) error
 	}
 	Users interface {
 		Create(context.Context, *User) error

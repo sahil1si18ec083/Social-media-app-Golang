@@ -76,3 +76,25 @@ func (s *PostStore) Delete(ctx context.Context, postId string) error {
 	}
 	return nil
 }
+
+func (s *PostStore) Update(ctx context.Context, post *Post, postid string) error {
+
+	fmt.Println("checking")
+	query := `UPDATE Posts SET title= $1 , content = $2 WHERE id = $3`
+	result, err := s.db.ExecContext(ctx, query, post.Title, post.Content, postid)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+
+}
