@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -159,14 +160,17 @@ func (a *application) UpdatePostHandler(w http.ResponseWriter, r *http.Request) 
 
 	err = a.store.Posts.Update(rcontext, post, postID)
 	if err != nil {
+		fmt.Println(err)
 		a.internalServerError(w, r, err)
 		return
 	}
 	err = writeJSON(w, http.StatusOK, post)
 	if err != nil {
+		fmt.Println(err, "2")
 		a.internalServerError(w, r, err)
 		return
 	}
+	fmt.Print("yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy")
 }
 
 func (a *application) postsContextMiddleware(next http.Handler) http.Handler {
@@ -174,6 +178,7 @@ func (a *application) postsContextMiddleware(next http.Handler) http.Handler {
 		postID := chi.URLParam(r, "postID")
 		post, err := a.store.Posts.GetById(r.Context(), postID)
 		if err != nil {
+			fmt.Println(err)
 			if errors.Is(err, store.ErrNotFound) {
 				a.notFoundResponse(w, r, err)
 				return
