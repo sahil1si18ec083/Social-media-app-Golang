@@ -5,12 +5,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/lib/pq"
 )
 
 var ErrNotFound = errors.New("resource not found")
+var QueryTimeoutDuration = time.Second * 1
 
 type Post struct {
 	ID        int64    `json:"id"`
@@ -30,6 +32,8 @@ type PostStore struct {
 
 func (s *PostStore) Create(ctx context.Context, post *Post) error {
 	fmt.Println("checking")
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
 	query := `INSERT INTO posts(title,content,user_id,tags) VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at`
 	err := s.db.QueryRowContext(ctx, query, post.Title, post.Content, post.UserID, post.Tags).Scan(
 		&post.ID,
@@ -46,6 +50,8 @@ func (s *PostStore) Create(ctx context.Context, post *Post) error {
 
 func (s *PostStore) GetById(ctx context.Context, postId string) (*Post, error) {
 	var post Post
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
 	query := `Select version, id, user_id, title, content, tags, created_at,  updated_at FROM posts where id = $1`
 	err := s.db.QueryRowContext(ctx, query, postId).Scan(&post.Version, &post.ID, &post.UserID, &post.Title, &post.Content, pq.Array(&post.Tags), &post.CreatedAt, &post.UpdatedAt)
 	fmt.Println(err)
@@ -60,6 +66,8 @@ func (s *PostStore) GetById(ctx context.Context, postId string) (*Post, error) {
 }
 func (s *PostStore) Delete(ctx context.Context, postId string) error {
 	fmt.Println("checking")
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
 	query := `DELETE FROM posts where id = $1 `
 	res, err := s.db.ExecContext(ctx, query, postId)
 	if err != nil {
@@ -81,7 +89,8 @@ func (s *PostStore) Delete(ctx context.Context, postId string) error {
 func (s *PostStore) Update(ctx context.Context, post *Post, postid string) error {
 
 	fmt.Println("checking")
-
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
 	query := `
 	UPDATE posts
 	SET title = $1,

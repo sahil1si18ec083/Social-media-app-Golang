@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
@@ -26,6 +27,10 @@ type UpdatePostPayload struct {
 }
 type DeletePostResponse struct {
 	Message string `json:"message"`
+}
+type CreateCommentPayload struct {
+	Content *string `json:"content" validate:"required,max=500"`
+	UserID  *int64  `json:"user_id,omitempty"`
 }
 
 func (a *application) createPostHandler(w http.ResponseWriter, r *http.Request) {
@@ -160,17 +165,79 @@ func (a *application) UpdatePostHandler(w http.ResponseWriter, r *http.Request) 
 
 	err = a.store.Posts.Update(rcontext, post, postID)
 	if err != nil {
-		fmt.Println(err)
 		a.internalServerError(w, r, err)
 		return
 	}
 	err = writeJSON(w, http.StatusOK, post)
 	if err != nil {
-		fmt.Println(err, "2")
+
 		a.internalServerError(w, r, err)
 		return
 	}
 	fmt.Print("yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy")
+}
+
+func (a *application) CreatePostCommentHandler(w http.ResponseWriter, r *http.Request) {
+
+	rcontext := r.Context()
+
+	post, ok := getPostFromContext(rcontext)
+	if !ok {
+		a.internalServerError(w, r, errors.New("post missing from context"))
+		return // VERY IMPORTANT
+	}
+	var payload CreateCommentPayload
+	err := readJSON(w, r, &payload)
+	if err != nil {
+
+		if !errors.Is(err, io.EOF) {
+			a.badRequestResponse(w, r, err)
+			return
+		}
+
+	}
+	err = Validate.Struct(&payload)
+	if err != nil {
+
+		a.badRequestResponse(w, r, err)
+		return
+	}
+	if payload.Content == nil || payload.UserID == nil {
+
+		err = writeJSON(w, http.StatusNoContent, post)
+		if err != nil {
+			a.internalServerError(w, r, err)
+			return
+		}
+		return
+	}
+	comment := &store.Comment{
+		Content: *payload.Content,
+		UserID:  *payload.UserID,
+		PostID:  post.ID,
+	}
+	err = a.store.Comments.Create(rcontext, comment)
+	if err != nil {
+
+		a.internalServerError(w, r, err)
+		return
+	}
+	postIdstring := strconv.FormatInt(post.ID, 10)
+	comments, err := a.store.Comments.GetByPostId(rcontext, postIdstring)
+	if err != nil {
+
+		a.internalServerError(w, r, err)
+		return
+	}
+	post.Comment = *comments
+
+	err = writeJSON(w, http.StatusOK, post)
+	if err != nil {
+
+		a.internalServerError(w, r, err)
+		return
+	}
+
 }
 
 func (a *application) postsContextMiddleware(next http.Handler) http.Handler {
@@ -178,7 +245,7 @@ func (a *application) postsContextMiddleware(next http.Handler) http.Handler {
 		postID := chi.URLParam(r, "postID")
 		post, err := a.store.Posts.GetById(r.Context(), postID)
 		if err != nil {
-			fmt.Println(err)
+
 			if errors.Is(err, store.ErrNotFound) {
 				a.notFoundResponse(w, r, err)
 				return

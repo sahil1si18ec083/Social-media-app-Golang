@@ -22,11 +22,27 @@ type CommentStore struct {
 	db *sql.DB
 }
 
-func (s *CommentStore) Create(ctx context.Context, Comment *Comment) error {
+func (s *CommentStore) Create(ctx context.Context, comment *Comment) error {
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+	query := `
+		INSERT INTO comments (content, user_id, post_id)
+		VALUES ($1, $2, $3)
+		RETURNING id, created_at
+	`
 
-	return nil
+	return s.db.QueryRowContext(
+		ctx,
+		query,
+		comment.Content,
+		comment.UserID,
+		comment.PostID,
+	).Scan(&comment.ID, &comment.CreatedAt)
+
 }
 func (s *CommentStore) GetByPostId(ctx context.Context, postId string) (*[]Comment, error) {
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
 	query := `select c.id, c.content,u.id,u.username from comments as c left join users as u on c.user_id = u.id
 where c.post_id =$1  order by  c.updated_at desc`
 	var comments []Comment
