@@ -16,3 +16,7 @@ func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Reques
 
 	writeJSONError(w, http.StatusBadRequest, err.Error())
 }
+
+func (app *application) conflictResponse(w http.ResponseWriter, r *http.Request, err error) {
+	writeJSONError(w, http.StatusConflict, err.Error())
+}
