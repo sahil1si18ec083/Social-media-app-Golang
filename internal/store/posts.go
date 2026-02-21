@@ -130,10 +130,29 @@ func (s *PostStore) Update(ctx context.Context, post *Post, postid string) error
 
 }
 
-func (s *PostStore) GetUserFeed(ctx context.Context, UserID string) (*[]PostWithMetadata, error) {
+func (s *PostStore) GetUserFeed(ctx context.Context, UserID string, fq PaginatedFeedQuery) (*[]PostWithMetadata, error) {
+	fmt.Println(fq)
 
 	var feed []PostWithMetadata
-	query := `SELECT 
+	sort := "DESC"
+	if fq.Sort == "asc" {
+		sort = "ASC"
+	}
+	var search interface{}
+	if fq.Search == "" {
+		search = nil
+	} else {
+		search = fq.Search
+	}
+
+	var tags interface{}
+	if len(fq.Tags) == 0 {
+		tags = nil
+	} else {
+		tags = pq.Array(fq.Tags)
+	}
+	query := fmt.Sprintf(`
+SELECT 
     p.id,
     p.user_id,
     p.content,
@@ -145,15 +164,36 @@ LEFT JOIN (
     FROM comments
     GROUP BY post_id
 ) cc ON cc.post_id = p.id
-WHERE p.user_id = $1
-   OR p.user_id IN (
-        SELECT user_id
-        FROM followers
-        WHERE follower_id = $1
-   )
-ORDER BY p.created_at DESC;
-	`
-	rows, err := s.db.QueryContext(ctx, query, UserID)
+WHERE (
+        p.user_id = $1
+        OR p.user_id IN (
+            SELECT user_id
+            FROM followers
+            WHERE follower_id = $1
+        )
+    )
+    AND (
+        $2::text IS NULL
+        OR p.title ILIKE '%%' || $2::text || '%%'
+        OR p.content ILIKE '%%' || $2::text || '%%'
+    )
+    AND (
+        $3::text[] IS NULL
+        OR p.tags && $3::text[]
+    )
+ORDER BY p.created_at %s
+LIMIT $4 OFFSET $5;
+`, sort)
+
+	rows, err := s.db.QueryContext(
+		ctx,
+		query,
+		UserID,
+		search,
+		tags,
+		fq.Limit,
+		fq.Offset,
+	)
 	fmt.Println(err)
 	if err != nil {
 		return nil, err
