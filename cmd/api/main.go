@@ -12,6 +12,11 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// @title Social Media API
+// @version 1.0
+// @description Social Media Backend API
+// @host localhost:8080
+// @BasePath /v1
 func main() {
 
 	if err := godotenv.Load(); err != nil {

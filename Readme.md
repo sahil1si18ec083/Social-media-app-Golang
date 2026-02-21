@@ -25,3 +25,9 @@ container-name   → which container
 psql             → postgres CLI
 -U               → user
 -d               → database
+
+
+
+for swagger 
+ swag init -g cmd/api/main.go
+ 

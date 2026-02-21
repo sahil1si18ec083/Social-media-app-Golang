@@ -1,0 +1,147 @@
+basePath: /v1
+definitions:
+  main.HealthResponse:
+    properties:
+      status:
+        example: ok
+        type: string
+      version:
+        example: 1.0.0
+        type: string
+    type: object
+  store.Comment:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      post_id:
+        type: integer
+      user:
+        $ref: '#/definitions/store.User'
+      user_id:
+        type: integer
+    type: object
+  store.PostWithMetadata:
+    properties:
+      comment:
+        items:
+          $ref: '#/definitions/store.Comment'
+        type: array
+      comments_count:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+      version:
+        type: integer
+    type: object
+  store.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Social Media Backend API
+  title: Social Media API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Returns server health status and version information
+      operationId: health-check
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Server is healthy
+          schema:
+            $ref: '#/definitions/main.HealthResponse'
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - system
+  /users/feed:
+    get:
+      description: Returns feed posts for the authenticated user including posts from
+        followed users
+      operationId: get-user-feed
+      parameters:
+      - description: Number of posts to return (default 20)
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      - description: 'Sort order: asc or desc'
+        in: query
+        name: sort
+        type: string
+      - collectionFormat: csv
+        description: Filter by tags (repeat parameter)
+        in: query
+        items:
+          type: string
+        name: tags
+        type: array
+      - description: Search text in title or content
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Feed returned successfully
+          schema:
+            items:
+              $ref: '#/definitions/store.PostWithMetadata'
+            type: array
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user feed
+      tags:
+      - users
+swagger: "2.0"

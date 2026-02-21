@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -174,7 +173,7 @@ func (a *application) UpdatePostHandler(w http.ResponseWriter, r *http.Request) 
 		a.internalServerError(w, r, err)
 		return
 	}
-	fmt.Print("yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy")
+
 }
 
 func (a *application) CreatePostCommentHandler(w http.ResponseWriter, r *http.Request) {
