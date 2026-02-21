@@ -25,6 +25,10 @@ type Post struct {
 	Comment   []Comment
 	Version   int64 `json:"version"`
 }
+type PostWithMetadata struct {
+	Post
+	CommentsCount int `json:"comments_count"`
+}
 
 type PostStore struct {
 	db *sql.DB
@@ -123,5 +127,51 @@ func (s *PostStore) Update(ctx context.Context, post *Post, postid string) error
 	}
 
 	return nil
+
+}
+
+func (s *PostStore) GetUserFeed(ctx context.Context, UserID string) (*[]PostWithMetadata, error) {
+
+	var feed []PostWithMetadata
+	query := `SELECT 
+    p.id,
+    p.user_id,
+    p.content,
+    p.title,
+    COALESCE(cc.comment_count, 0) AS comment_count
+FROM posts p
+LEFT JOIN (
+    SELECT post_id, COUNT(*) AS comment_count
+    FROM comments
+    GROUP BY post_id
+) cc ON cc.post_id = p.id
+WHERE p.user_id = $1
+   OR p.user_id IN (
+        SELECT user_id
+        FROM followers
+        WHERE follower_id = $1
+   )
+ORDER BY p.created_at DESC;
+	`
+	rows, err := s.db.QueryContext(ctx, query, UserID)
+	fmt.Println(err)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var f PostWithMetadata
+		err := rows.Scan(&f.Post.ID,
+			&f.Post.UserID,
+			&f.Post.Content,
+			&f.Post.Title, &f.CommentsCount)
+		if err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+		feed = append(feed, f)
+
+	}
+
+	return &feed, nil
 
 }
