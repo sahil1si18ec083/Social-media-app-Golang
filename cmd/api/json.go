@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -33,7 +32,6 @@ func writeJSONError(w http.ResponseWriter, status int, err string) {
 
 func readJSON(w http.ResponseWriter, r *http.Request, body interface{}) error {
 
-	fmt.Println("testing")
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(body)
 	return err

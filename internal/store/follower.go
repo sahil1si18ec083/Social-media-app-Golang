@@ -66,7 +66,6 @@ func (s *FollowerStore) UnFollow(ctx context.Context, followerID string, userID 
 	`
 	result, err := s.db.ExecContext(ctx, query, followerID, userID)
 
-	fmt.Println(err)
 	if err != nil {
 
 		return err

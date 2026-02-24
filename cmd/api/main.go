@@ -22,8 +22,6 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file: ", err)
 	}
-	x := env.GetString("ADDR", ":8080")
-	fmt.Println(x)
 	cfg := config{
 		addr: env.GetString("ADDR", ":8080"),
 		db: dbConfig{
@@ -36,7 +34,7 @@ func main() {
 	fmt.Print(cfg.db.addr)
 	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)
 	if err != nil {
-		fmt.Println(err)
+
 		log.Fatal(err)
 	}
 	defer db.Close()
@@ -55,6 +53,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("bye.............")
 
 }

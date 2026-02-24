@@ -35,7 +35,7 @@ type PostStore struct {
 }
 
 func (s *PostStore) Create(ctx context.Context, post *Post) error {
-	fmt.Println("checking")
+
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
 	query := `INSERT INTO posts(title,content,user_id,tags) VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at`
@@ -69,7 +69,7 @@ func (s *PostStore) GetById(ctx context.Context, postId string) (*Post, error) {
 
 }
 func (s *PostStore) Delete(ctx context.Context, postId string) error {
-	fmt.Println("checking")
+
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
 	query := `DELETE FROM posts where id = $1 `
@@ -82,7 +82,6 @@ func (s *PostStore) Delete(ctx context.Context, postId string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(rowsAffected)
 
 	if rowsAffected == 0 {
 		return ErrNotFound
@@ -92,7 +91,6 @@ func (s *PostStore) Delete(ctx context.Context, postId string) error {
 
 func (s *PostStore) Update(ctx context.Context, post *Post, postid string) error {
 
-	fmt.Println("checking")
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
 	query := `

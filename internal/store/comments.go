@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"strconv"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -65,7 +64,7 @@ where c.post_id =$1  order by  c.updated_at desc`
 
 		c.UserID = u.ID
 		int64val, err := strconv.ParseInt(postId, 10, 64)
-		fmt.Println(int64val, "xx")
+
 		if err != nil {
 			return nil, err
 		}
