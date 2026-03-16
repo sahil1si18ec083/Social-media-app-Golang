@@ -25,6 +25,13 @@ type dbConfig struct {
 type config struct {
 	addr string
 	db   dbConfig
+	auth authConfig
+}
+type authConfig struct {
+	token tokenConfig
+}
+type tokenConfig struct {
+	exp time.Duration
 }
 
 func (app *application) mount() http.Handler {
@@ -52,6 +59,7 @@ func (app *application) mount() http.Handler {
 			})
 		})
 		r.Route("/users", func(r chi.Router) {
+			r.Put("/activate/{token}", app.ActivateUserHandler)
 			r.Route("/{userID}", func(r chi.Router) {
 				r.Use(app.AuthTokenMiddleware)
 				r.Get("/", app.GetUserHandler)

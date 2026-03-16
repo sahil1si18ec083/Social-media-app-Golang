@@ -1,9 +1,12 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
 )
 
@@ -33,12 +36,28 @@ func (a *application) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 
 	err = user.Password.SetPassword(payload.Password, &user)
 	if err != nil {
+		fmt.Println(err)
 		a.internalServerError(w, r, err)
 		return
 	}
-	err = a.store.Users.Create(r.Context(), &user)
+	plainToken := uuid.New().String()
+	fmt.Println(plainToken, "              HHHH")
+	// hash the token for storage but keep the plain token for email
+	hash := sha256.Sum256([]byte(plainToken))
+	hashToken := hex.EncodeToString(hash[:])
+	expiry_time := a.config.auth.token.exp
+
+	err = a.store.Users.CreateAndInvite(r.Context(), &user, hashToken, expiry_time)
 	if err != nil {
+		fmt.Println(err)
 		a.internalServerError(w, r, err)
+		return
+	}
+	err = writeJSON(w, http.StatusOK, user)
+	if err != nil {
+
+		a.internalServerError(w, r, err)
+		return
 	}
 
 }

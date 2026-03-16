@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -167,4 +168,28 @@ func (a *application) UnfollowUserHandler(w http.ResponseWriter, r *http.Request
 		a.internalServerError(w, r, err)
 		return
 	}
+}
+
+func (a *application) ActivateUserHandler(w http.ResponseWriter, r *http.Request) {
+	rcontext := r.Context()
+	token := chi.URLParam(r, "token")
+	err := a.store.Users.Activate(rcontext, token)
+	if err != nil {
+		fmt.Println(err, "hhhh")
+		switch err {
+		case store.ErrNotFound:
+			a.notFoundResponse(w, r, err)
+		default:
+			a.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	err = writeJSON(w, http.StatusOK, FollowResponse{Message: "Activated Successfully"})
+	if err != nil {
+		fmt.Println(err)
+		a.internalServerError(w, r, err)
+		return
+	}
+
 }

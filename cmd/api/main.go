@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/db"
@@ -29,6 +30,11 @@ func main() {
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 30),
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "15m"),
+		},
+		auth: authConfig{
+			token: tokenConfig{
+				exp: time.Hour * 24 * 3, // 3 days
+			},
 		},
 	}
 	fmt.Print(cfg.db.addr)
