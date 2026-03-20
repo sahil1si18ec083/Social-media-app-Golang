@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/db"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/env"
+	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/mailer"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
 
 	_ "github.com/lib/pq"
@@ -24,7 +25,8 @@ func main() {
 		log.Fatal("Error loading .env file: ", err)
 	}
 	cfg := config{
-		addr: env.GetString("ADDR", ":8080"),
+		addr:        env.GetString("ADDR", ":8080"),
+		frontendURL: env.GetString("FRONTEND_URL", "http://localhost:5173"),
 		db: dbConfig{
 			addr:         env.GetString("DB_ADDR", "postgres://admin:adminpassword@localhost:5432/socialnetwork?sslmode=disable"),
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
@@ -36,8 +38,18 @@ func main() {
 				exp: time.Hour * 24 * 3, // 3 days
 			},
 		},
+		env: env.GetString("ENV", "development"),
+		mail: mailConfig{
+			fromEmail: env.GetString("FROM_EMAIL", "sk2000jee@gmail.com"),
+			exp:       time.Hour * 24 * 3,
+			mailTrap: mailTrapConfig{
+				apikey: env.GetString("MAILTRAP_API_KEY", ""),
+			},
+			sendGrid: sendGridConfig{
+				apikey: env.GetString("SENDGRID_API_KEY", ""),
+			},
+		},
 	}
-	fmt.Print(cfg.db.addr)
 	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)
 	if err != nil {
 
@@ -47,15 +59,20 @@ func main() {
 
 	store := store.NewStorage(db)
 	fmt.Print(store)
-
+	mailtrap, err := mailer.NewSendgrid(cfg.mail.fromEmail, cfg.mail.sendGrid.apikey)
+	if err != nil {
+		log.Fatal(err)
+	}
 	app := &application{
 		config: cfg,
 		store:  store,
+		mailer: mailtrap,
 	}
 
 	mux := app.mount()
 	err = app.run(mux)
 	fmt.Print("bye")
+
 	if err != nil {
 		log.Fatal(err)
 	}

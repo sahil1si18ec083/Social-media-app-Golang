@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/sahil1si18ec083/Social-media-app-Golang/docs"
+	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/mailer"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
@@ -15,6 +16,7 @@ import (
 type application struct {
 	config config
 	store  store.Storage
+	mailer mailer.Client
 }
 type dbConfig struct {
 	addr         string
@@ -23,15 +25,30 @@ type dbConfig struct {
 	maxIdleTime  string
 }
 type config struct {
-	addr string
-	db   dbConfig
-	auth authConfig
+	addr        string
+	db          dbConfig
+	auth        authConfig
+	mail        mailConfig
+	env         string
+	frontendURL string
 }
 type authConfig struct {
 	token tokenConfig
 }
 type tokenConfig struct {
 	exp time.Duration
+}
+type mailConfig struct {
+	sendGrid  sendGridConfig
+	mailTrap  mailTrapConfig
+	fromEmail string
+	exp       time.Duration
+}
+type sendGridConfig struct {
+	apikey string
+}
+type mailTrapConfig struct {
+	apikey string
 }
 
 func (app *application) mount() http.Handler {

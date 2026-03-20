@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/mailer"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
 )
 
@@ -14,6 +15,10 @@ type RegisterUserPayload struct {
 	Username string `json:"username" validate:"required,max=100"`
 	Email    string `json:"email" validate:"required,email,max=255"`
 	Password string `json:"password" validate:"required,min=3,max=72"`
+}
+type WelcomeEmailData struct {
+	Username      string
+	ActivationURL string
 }
 
 func (a *application) RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +58,21 @@ func (a *application) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 		a.internalServerError(w, r, err)
 		return
 	}
+	fmt.Println(user)
+	// send the invitation mail
+
+	activationURL := fmt.Sprintf("%s/confirm/%s", a.config.frontendURL, plainToken)
+	fmt.Println(activationURL)
+	vars := WelcomeEmailData{Username: user.Username, ActivationURL: activationURL}
+	isProdEnv := a.config.env == "production"
+
+	status, err := a.mailer.Send(mailer.UserWelcomeTemplate, user.Username, user.Email, vars, !isProdEnv)
+	if err != nil {
+		// do something
+		// saga pattern
+		fmt.Println(err)
+	}
+	fmt.Println(status)
 	err = writeJSON(w, http.StatusOK, user)
 	if err != nil {
 
