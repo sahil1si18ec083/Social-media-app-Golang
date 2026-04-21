@@ -39,16 +39,21 @@ type tokenConfig struct {
 	exp time.Duration
 }
 type mailConfig struct {
-	sendGrid  sendGridConfig
-	mailTrap  mailTrapConfig
-	fromEmail string
-	exp       time.Duration
+	sendGrid sendGridConfig
+	mailTrap mailTrapConfig
+
+	exp time.Duration
 }
 type sendGridConfig struct {
-	apikey string
+	apikey    string
+	fromEmail string
 }
 type mailTrapConfig struct {
-	apikey string
+	fromEmail string
+	host      string
+	port      int
+	username  string
+	password  string
 }
 
 func (app *application) mount() http.Handler {

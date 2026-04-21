@@ -40,13 +40,18 @@ func main() {
 		},
 		env: env.GetString("ENV", "development"),
 		mail: mailConfig{
-			fromEmail: env.GetString("FROM_EMAIL", "sk2000jee@gmail.com"),
-			exp:       time.Hour * 24 * 3,
+
+			exp: time.Hour * 24 * 3,
 			mailTrap: mailTrapConfig{
-				apikey: env.GetString("MAILTRAP_API_KEY", ""),
+				host:      env.GetString("MAILTRAP_HOST", "live.smtp.mailtrap.io"),
+				port:      env.GetInt("MAILTRAP_PORT", 587),
+				username:  env.GetString("MAILTRAP_USERNAME", ""),
+				password:  env.GetString("MAILTRAP_PASSWORD", ""),
+				fromEmail: env.GetString("FROM_EMAIL_MT", "kumarsahiljee19@gmail.com"),
 			},
 			sendGrid: sendGridConfig{
-				apikey: env.GetString("SENDGRID_API_KEY", ""),
+				apikey:    env.GetString("SENDGRID_API_KEY", ""),
+				fromEmail: env.GetString("FROM_EMAIL_SG", "sk2000jee@gmail.com"),
 			},
 		},
 	}
@@ -59,14 +64,29 @@ func main() {
 
 	store := store.NewStorage(db)
 	fmt.Print(store)
-	mailtrap, err := mailer.NewSendgrid(cfg.mail.fromEmail, cfg.mail.sendGrid.apikey)
+
+	var mailClient mailer.Client
+	switch {
+	case cfg.mail.mailTrap.username != "" && cfg.mail.mailTrap.password != "":
+		mailClient, err = mailer.NewMailTrapMailer(
+			cfg.mail.mailTrap.fromEmail,
+			cfg.mail.mailTrap.host,
+			cfg.mail.mailTrap.port,
+			cfg.mail.mailTrap.username,
+			cfg.mail.mailTrap.password,
+		)
+	case cfg.mail.sendGrid.apikey != "":
+		mailClient, err = mailer.NewSendgrid(cfg.mail.sendGrid.fromEmail, cfg.mail.sendGrid.apikey)
+	default:
+		log.Fatal("no mail provider configured")
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
 	app := &application{
 		config: cfg,
 		store:  store,
-		mailer: mailtrap,
+		mailer: mailClient,
 	}
 
 	mux := app.mount()

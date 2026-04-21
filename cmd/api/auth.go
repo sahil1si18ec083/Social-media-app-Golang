@@ -64,13 +64,16 @@ func (a *application) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 	activationURL := fmt.Sprintf("%s/confirm/%s", a.config.frontendURL, plainToken)
 	fmt.Println(activationURL)
 	vars := WelcomeEmailData{Username: user.Username, ActivationURL: activationURL}
+	fmt.Println(activationURL)
 	isProdEnv := a.config.env == "production"
 
 	status, err := a.mailer.Send(mailer.UserWelcomeTemplate, user.Username, user.Email, vars, !isProdEnv)
+	fmt.Println(status, err)
+	fmt.Println("yoo")
 	if err != nil {
-		// do something
-		// saga pattern
 		fmt.Println(err)
+		a.internalServerError(w, r, err)
+		return
 	}
 	fmt.Println(status)
 	err = writeJSON(w, http.StatusOK, user)
