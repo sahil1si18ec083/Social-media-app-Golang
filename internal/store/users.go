@@ -76,7 +76,26 @@ func (s *UsersStore) GetById(ctx context.Context, userId string) (*User, error) 
 
 	return &user, nil
 }
+func (s *UsersStore) GetByUsername(ctx context.Context, username string) (*User, error) {
+	query := `SELECT email, username,id, created_at, updated_at, password_hash from Users where username =$1`
+	var user User
+	err := s.db.QueryRowContext(ctx, query, username).Scan(
+		&user.Email,
+		&user.Username,
+		&user.ID,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&user.Password.Hash,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
 
+	return &user, nil
+}
 func (s *UsersStore) CreateAndInvite(ctx context.Context, user *User, token string, exp time.Duration) error {
 
 	return withTx(s.db, ctx, func(tx *sql.Tx) error {

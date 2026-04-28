@@ -37,26 +37,26 @@ func (a *application) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *application) AuthTokenMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID := chi.URLParam(r, "userID")
-		user, err := a.store.Users.GetById(r.Context(), userID)
-		if err != nil {
+// func (a *application) AuthTokenMiddleware(next http.Handler) http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		userID := chi.URLParam(r, "userID")
+// 		user, err := a.store.Users.GetById(r.Context(), userID)
+// 		if err != nil {
 
-			if errors.Is(err, store.ErrNotFound) {
-				a.notFoundResponse(w, r, err)
-				return
-			}
+// 			if errors.Is(err, store.ErrNotFound) {
+// 				a.notFoundResponse(w, r, err)
+// 				return
+// 			}
 
-			a.internalServerError(w, r, err)
-			return
-		}
-		ctx := context.WithValue(r.Context(), userContextKey, user)
+// 			a.internalServerError(w, r, err)
+// 			return
+// 		}
+// 		ctx := context.WithValue(r.Context(), userContextKey, user)
 
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+// 		next.ServeHTTP(w, r.WithContext(ctx))
+// 	})
 
-}
+// }
 
 func GetUserFromContext(ctx context.Context) (*store.User, bool) {
 

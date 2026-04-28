@@ -20,3 +20,8 @@ func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Reques
 func (app *application) conflictResponse(w http.ResponseWriter, r *http.Request, err error) {
 	writeJSONError(w, http.StatusConflict, err.Error())
 }
+
+func (app *application) unauthorizedErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+
+	writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+}

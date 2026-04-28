@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/sahil1si18ec083/Social-media-app-Golang/docs"
+	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/auth"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/mailer"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
@@ -17,6 +18,7 @@ type application struct {
 	config config
 	store  store.Storage
 	mailer mailer.Client
+	auth   auth.Authenticator
 }
 type dbConfig struct {
 	addr         string
@@ -36,7 +38,8 @@ type authConfig struct {
 	token tokenConfig
 }
 type tokenConfig struct {
-	exp time.Duration
+	exp       time.Duration
+	secretKey string
 }
 type mailConfig struct {
 	sendGrid sendGridConfig
@@ -65,6 +68,7 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Route("/v1", func(r chi.Router) {
+		r.Use(app.BasicAuthMiddleware)
 		r.Get("/swagger/*", httpSwagger.Handler(
 			httpSwagger.URL("http://localhost:8080/v1/swagger/doc.json"),
 		))

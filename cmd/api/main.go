@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/auth"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/db"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/env"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/mailer"
@@ -35,7 +36,8 @@ func main() {
 		},
 		auth: authConfig{
 			token: tokenConfig{
-				exp: time.Hour * 24 * 3, // 3 days
+				exp:       time.Hour * 24 * 3,
+				secretKey: env.GetString("JWT_SECRET", ""),
 			},
 		},
 		env: env.GetString("ENV", "development"),
@@ -83,10 +85,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	jwtClient := auth.NewJWT(cfg.auth.token.secretKey)
 	app := &application{
 		config: cfg,
 		store:  store,
 		mailer: mailClient,
+		auth:   jwtClient,
 	}
 
 	mux := app.mount()
