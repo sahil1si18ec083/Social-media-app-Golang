@@ -68,40 +68,50 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Route("/v1", func(r chi.Router) {
-		r.Use(app.BasicAuthMiddleware)
-		r.Get("/swagger/*", httpSwagger.Handler(
-			httpSwagger.URL("http://localhost:8080/v1/swagger/doc.json"),
-		))
+		r.Group(func(r chi.Router) {
+			r.Use(app.BasicAuthMiddleware)
+			r.Get("/swagger/*", httpSwagger.Handler(
+				httpSwagger.URL("http://localhost:8080/v1/swagger/doc.json"),
+			))
+		})
+
 		r.Get("/health", app.healthCheckHandler)
-		r.Route("/posts", func(r chi.Router) {
-			r.Post("/", app.createPostHandler)
-			r.Route("/{postID}", func(r chi.Router) {
-				r.Use(app.postsContextMiddleware)
 
-				r.Get("/", app.GetPostHandler)
-				r.Delete("/", app.DeletePostHandler)
-				r.Patch("/", app.UpdatePostHandler)
-				r.Post("/comments", app.CreatePostCommentHandler)
-			})
-		})
-		r.Route("/users", func(r chi.Router) {
-			r.Put("/activate/{token}", app.ActivateUserHandler)
-			r.Route("/{userID}", func(r chi.Router) {
-				r.Use(app.AuthTokenMiddleware)
-				r.Get("/", app.GetUserHandler)
-				r.Put("/follow", app.FollowUserHandler)
-				r.Put("/unfollow", app.UnfollowUserHandler)
-			})
-			r.Group(func(r chi.Router) {
-
-				r.Get("/feed", app.GetUserFeedHandler)
-			})
-		})
 		r.Route("/authentication", func(r chi.Router) {
 			r.Post("/user", app.RegisterUserHandler)
 			// r.Post("/token", app.createTokenHandler)
 		})
 
+		r.Route("/users", func(r chi.Router) {
+			r.Put("/activate/{token}", app.ActivateUserHandler)
+
+			r.Group(func(r chi.Router) {
+				r.Use(app.AuthTokenMiddleware)
+
+				r.Get("/feed", app.GetUserFeedHandler)
+
+				r.Route("/{userID}", func(r chi.Router) {
+					r.Get("/", app.GetUserHandler)
+					r.Put("/follow", app.FollowUserHandler)
+					r.Put("/unfollow", app.UnfollowUserHandler)
+				})
+			})
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(app.AuthTokenMiddleware)
+
+			r.Route("/posts", func(r chi.Router) {
+				r.Post("/", app.createPostHandler)
+				r.Route("/{postID}", func(r chi.Router) {
+					r.Use(app.postsContextMiddleware)
+					r.Get("/", app.GetPostHandler)
+					r.Delete("/", app.DeletePostHandler)
+					r.Patch("/", app.UpdatePostHandler)
+					r.Post("/comments", app.CreatePostCommentHandler)
+				})
+			})
+		})
 	})
 
 	return r

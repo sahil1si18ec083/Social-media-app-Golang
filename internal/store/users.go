@@ -140,10 +140,11 @@ func (s *UsersStore) update(ctx context.Context, tx *sql.Tx, user *User) error {
 
 	return nil
 }
-func (s *UsersStore) Activate(ctx context.Context, token string) error {
-	fmt.Println("inside")
+func (s *UsersStore) Activate(ctx context.Context, token string) (*User, error) {
 
-	return withTx(s.db, ctx, func(tx *sql.Tx) error {
+	var activatedUser *User
+
+	err := withTx(s.db, ctx, func(tx *sql.Tx) error {
 		// 1. find the user that this token belongs to
 		user, err := s.getUserFromInvitation(ctx, tx, token)
 		fmt.Println(err, "a")
@@ -163,9 +164,14 @@ func (s *UsersStore) Activate(ctx context.Context, token string) error {
 			fmt.Println(err, "ac")
 			return err
 		}
+		activatedUser = user
 
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	return activatedUser, nil
 
 }
 

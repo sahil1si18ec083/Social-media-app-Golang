@@ -49,7 +49,7 @@ func (a *application) createPostHandler(w http.ResponseWriter, r *http.Request) 
 	post := &store.Post{Title: payload.Title, Content: payload.Content,
 		Tags: payload.Tags,
 		// change userID after auth
-		UserID: 1}
+		UserID: 79}
 
 	rcontext := r.Context()
 	err = a.store.Posts.Create(rcontext, post)

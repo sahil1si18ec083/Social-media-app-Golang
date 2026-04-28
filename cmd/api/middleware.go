@@ -14,19 +14,23 @@ func (a *application) AuthTokenMiddleware(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Pre-processing logic (e.g., checking headers)
+		fmt.Print("i zm ")
 
 		authHeader := r.Header.Get("Authorization")
+		fmt.Println(authHeader)
 		if authHeader == "" {
 			a.unauthorizedErrorResponse(w, r, errors.New("Authorization missing from header"))
 			return // VERY IMPORTANT
 		}
 		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] == "Beaer" {
+		fmt.Println(parts)
+		if len(parts) != 2 || parts[0] != "Bearer" {
 			a.unauthorizedErrorResponse(w, r, fmt.Errorf("authorization header is malformed"))
 			return
 		}
 		token := parts[1]
 		fmt.Println(token)
+		fmt.Print("   token printed  ")
 
 		err := a.auth.ValidateToken(token)
 		fmt.Println(err)
@@ -34,7 +38,15 @@ func (a *application) AuthTokenMiddleware(next http.Handler) http.Handler {
 			a.unauthorizedErrorResponse(w, r, fmt.Errorf("authorization header is malformed"))
 			return
 		}
+		// ctx := r.Context()
 
+		// user, err := a.GetUserFromContext
+		// if err != nil {
+		// 	a.unauthorizedErrorResponse(w, r, err)
+		// 	return
+		// }
+
+		// ctx = context.WithValue(ctx, userContextKey, user)
 		next.ServeHTTP(w, r)
 
 	})

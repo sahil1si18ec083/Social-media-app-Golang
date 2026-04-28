@@ -85,7 +85,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	jwtClient := auth.NewJWT(cfg.auth.token.secretKey)
+	jwtClient := auth.NewJWT(cfg.auth.token.secretKey, cfg.auth.token.exp)
 	app := &application{
 		config: cfg,
 		store:  store,
