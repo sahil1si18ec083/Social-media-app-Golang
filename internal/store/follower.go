@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/lib/pq"
@@ -34,7 +33,7 @@ func (s *FollowerStore) Follow(ctx context.Context, followerID string, userID st
 	`
 
 	_, err := s.db.ExecContext(ctx, query, followerID, userID)
-	fmt.Println(err)
+
 	if err != nil {
 
 		var pqErr *pq.Error

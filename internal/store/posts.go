@@ -44,7 +44,7 @@ func (s *PostStore) Create(ctx context.Context, post *Post) error {
 		&post.CreatedAt,
 		&post.UpdatedAt,
 	)
-	fmt.Println(err)
+
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (s *PostStore) GetById(ctx context.Context, postId string) (*Post, error) {
 	defer cancel()
 	query := `Select version, id, user_id, title, content, tags, created_at,  updated_at FROM posts where id = $1`
 	err := s.db.QueryRowContext(ctx, query, postId).Scan(&post.Version, &post.ID, &post.UserID, &post.Title, &post.Content, pq.Array(&post.Tags), &post.CreatedAt, &post.UpdatedAt)
-	fmt.Println(err)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNotFound
@@ -115,7 +115,7 @@ func (s *PostStore) Update(ctx context.Context, post *Post, postid string) error
 	}
 
 	rowsAffected, err := result.RowsAffected()
-	fmt.Println(err)
+
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,6 @@ func (s *PostStore) Update(ctx context.Context, post *Post, postid string) error
 }
 
 func (s *PostStore) GetUserFeed(ctx context.Context, UserID string, fq PaginatedFeedQuery) (*[]PostWithMetadata, error) {
-	fmt.Println(fq)
 
 	var feed []PostWithMetadata
 	sort := "DESC"
@@ -192,7 +191,7 @@ LIMIT $4 OFFSET $5;
 		fq.Limit,
 		fq.Offset,
 	)
-	fmt.Println(err)
+
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +202,7 @@ LIMIT $4 OFFSET $5;
 			&f.Post.Content,
 			&f.Post.Title, &f.CommentsCount)
 		if err != nil {
-			fmt.Println(err)
+
 			return nil, err
 		}
 		feed = append(feed, f)

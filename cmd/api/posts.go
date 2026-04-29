@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -46,10 +47,14 @@ func (a *application) createPostHandler(w http.ResponseWriter, r *http.Request) 
 		a.badRequestResponse(w, r, err)
 		return
 	}
+
+	user, _ := GetUserFromContext(r.Context())
+	fmt.Println(user)
+	fmt.Println("jussy")
 	post := &store.Post{Title: payload.Title, Content: payload.Content,
 		Tags: payload.Tags,
 		// change userID after auth
-		UserID: 79}
+		UserID: user.ID}
 
 	rcontext := r.Context()
 	err = a.store.Posts.Create(rcontext, post)

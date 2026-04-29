@@ -22,7 +22,7 @@ type SendGridMailer struct {
 }
 
 func NewSendgrid(fromEmail string, apiKey string) (*SendGridMailer, error) {
-	fmt.Println("ak  ", apiKey, "apikey")
+
 	return &SendGridMailer{
 		fromEmail: fromEmail,
 		apiKey:    apiKey,
@@ -32,13 +32,10 @@ func NewSendgrid(fromEmail string, apiKey string) (*SendGridMailer, error) {
 func (m *SendGridMailer) Send(templateFile, username, email string, data any, isSandbox bool) (int, error) {
 	from := mail.NewEmail(FromName, m.fromEmail)
 	to := mail.NewEmail(username, email)
-	fmt.Println("FROM EMAIL:", m.fromEmail)
+
 	// template parsing and building
-	files, err := FS.ReadDir("templates")
-	fmt.Println(err)
-	for _, f := range files {
-		fmt.Println("FILE:", f.Name())
-	}
+	_, err := FS.ReadDir("templates")
+
 	tmpl, err := template.ParseFS(FS, "templates/"+templateFile)
 	if err != nil {
 		return -1, err
@@ -66,18 +63,14 @@ func (m *SendGridMailer) Send(templateFile, username, email string, data any, is
 
 	var retryErr error
 	for i := 0; i < maxRetires; i++ {
-		fmt.Println(m.apiKey, "     test   ")
+
 		response, retryErr := m.client.Send(message)
-		fmt.Println("STATUS:", response.StatusCode)
-		fmt.Println("BODY:", response.Body)
-		fmt.Println("HEADERS:", response.Headers)
+
 		if retryErr != nil {
-			fmt.Println(retryErr)
-			// exponential backoff
+
 			time.Sleep(time.Second * time.Duration(i+1))
 			continue
 		}
-		fmt.Println(response)
 
 		return response.StatusCode, nil
 	}

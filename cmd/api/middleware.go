@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -14,40 +15,36 @@ func (a *application) AuthTokenMiddleware(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Pre-processing logic (e.g., checking headers)
-		fmt.Print("i zm ")
 
 		authHeader := r.Header.Get("Authorization")
-		fmt.Println(authHeader)
+
 		if authHeader == "" {
 			a.unauthorizedErrorResponse(w, r, errors.New("Authorization missing from header"))
 			return // VERY IMPORTANT
 		}
 		parts := strings.Split(authHeader, " ")
-		fmt.Println(parts)
+
 		if len(parts) != 2 || parts[0] != "Bearer" {
 			a.unauthorizedErrorResponse(w, r, fmt.Errorf("authorization header is malformed"))
 			return
 		}
 		token := parts[1]
-		fmt.Println(token)
-		fmt.Print("   token printed  ")
 
-		err := a.auth.ValidateToken(token)
-		fmt.Println(err)
+		claims, err := a.auth.ValidateToken(token)
+
 		if err != nil {
 			a.unauthorizedErrorResponse(w, r, fmt.Errorf("authorization header is malformed"))
 			return
 		}
-		// ctx := r.Context()
+		user, err := a.store.Users.GetById(r.Context(), claims.Subject)
+		if err != nil {
+			a.unauthorizedErrorResponse(w, r, errors.New("invalid credentials"))
+			return
+		}
 
-		// user, err := a.GetUserFromContext
-		// if err != nil {
-		// 	a.unauthorizedErrorResponse(w, r, err)
-		// 	return
-		// }
-
-		// ctx = context.WithValue(ctx, userContextKey, user)
-		next.ServeHTTP(w, r)
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, userContextKey, user)
+		next.ServeHTTP(w, r.WithContext(ctx))
 
 	})
 }
@@ -56,7 +53,6 @@ func (a *application) BasicAuthMiddleware(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Pre-processing logic (e.g., checking headers)
-		fmt.Println("yah yah")
 
 		authHeader := r.Header.Get("Authorization")
 
@@ -66,14 +62,14 @@ func (a *application) BasicAuthMiddleware(next http.Handler) http.Handler {
 		}
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Basic" {
-			fmt.Println("a")
+
 			a.unauthorizedErrorResponse(w, r, fmt.Errorf("authorization header is malformed"))
 			return
 		}
 
 		decoded, err := base64.StdEncoding.DecodeString(parts[1])
 		if err != nil {
-			fmt.Println(err)
+
 			a.unauthorizedErrorResponse(w, r, fmt.Errorf("invalid basic auth encoding"))
 			return
 		}
@@ -85,17 +81,15 @@ func (a *application) BasicAuthMiddleware(next http.Handler) http.Handler {
 
 		username := creds[0]
 		password := creds[1]
-		fmt.Println(username, password)
-		fmt.Println("bye")
 
 		user, err := a.store.Users.GetByUsername(r.Context(), username)
 		if err != nil {
-			fmt.Println(err)
+
 			a.unauthorizedErrorResponse(w, r, errors.New("invalid credentials"))
 			return
 		}
 		err = bcrypt.CompareHashAndPassword(user.Password.Hash, []byte(password))
-		fmt.Println(err)
+
 		if err != nil {
 			a.unauthorizedErrorResponse(w, r, errors.New("invalid credentials"))
 			return

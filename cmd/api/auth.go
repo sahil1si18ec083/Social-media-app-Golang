@@ -35,13 +35,12 @@ func (a *application) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 		a.badRequestResponse(w, r, err)
 		return
 	}
-	fmt.Println(payload)
 
 	user := store.User{Username: payload.Username, Email: payload.Email}
 
 	err = user.Password.SetPassword(payload.Password, &user)
 	if err != nil {
-		fmt.Println(err)
+
 		a.internalServerError(w, r, err)
 		return
 	}
@@ -54,29 +53,28 @@ func (a *application) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 
 	err = a.store.Users.CreateAndInvite(r.Context(), &user, hashToken, expiry_time)
 	if err != nil {
-		fmt.Println(err)
+
 		a.internalServerError(w, r, err)
 		return
 	}
-	fmt.Println(user)
+
 	// send the invitation mail
 
 	activationURL := fmt.Sprintf("%s/confirm/%s", a.config.frontendURL, plainToken)
 	fmt.Println(activationURL)
 	vars := WelcomeEmailData{Username: user.Username, ActivationURL: activationURL}
-	fmt.Println(activationURL)
+
 	isProdEnv := a.config.env == "production"
 
-	status, err := a.mailer.Send(mailer.UserWelcomeTemplate, user.Username, user.Email, vars, !isProdEnv)
-	fmt.Println(status, err)
-	fmt.Println("yoo")
+	_, err = a.mailer.Send(mailer.UserWelcomeTemplate, user.Username, user.Email, vars, !isProdEnv)
+
 	if err != nil {
-		fmt.Println(err)
+
 		a.internalServerError(w, r, err)
 		return
 	}
-	fmt.Println(status)
-	err = writeJSON(w, http.StatusOK, user)
+
+	err = writeJSON(w, http.StatusOK, "Activation URL send")
 	if err != nil {
 
 		a.internalServerError(w, r, err)

@@ -13,26 +13,40 @@ type JWT struct {
 	expiry    time.Duration
 }
 
-func (j *JWT) ValidateToken(tokenString string) error {
-
+func (j *JWT) ValidateToken(tokenString string) (*Claims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return j.secretKey, nil
 	})
-
 	if err != nil {
-
-		return err
+		return nil, err
 	}
 
 	if !token.Valid {
-		return fmt.Errorf("invalid token")
+		return nil, fmt.Errorf("invalid token")
 	}
 
-	return nil
+	mapClaims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, fmt.Errorf("invalid token claims")
+	}
+
+	subject, err := mapClaims.GetSubject()
+	if err != nil {
+		return nil, err
+	}
+
+	username, ok := mapClaims["username"].(string)
+	if !ok || username == "" {
+		return nil, fmt.Errorf("invalid username claim")
+	}
+
+	return &Claims{
+		Subject:  subject,
+		Username: username,
+	}, nil
 }
 
 func NewJWT(secret string, exp time.Duration) *JWT {

@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
-	"fmt"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -147,7 +146,7 @@ func (s *UsersStore) Activate(ctx context.Context, token string) (*User, error) 
 	err := withTx(s.db, ctx, func(tx *sql.Tx) error {
 		// 1. find the user that this token belongs to
 		user, err := s.getUserFromInvitation(ctx, tx, token)
-		fmt.Println(err, "a")
+
 		if err != nil {
 			return err
 		}
@@ -155,13 +154,13 @@ func (s *UsersStore) Activate(ctx context.Context, token string) (*User, error) 
 		// 2. update the user
 		user.IsActive = true
 		if err := s.update(ctx, tx, user); err != nil {
-			fmt.Println(err, "ab")
+
 			return err
 		}
 
 		// 3. clean the invitations
 		if err := s.deleteUserInvitations(ctx, tx, user.ID); err != nil {
-			fmt.Println(err, "ac")
+
 			return err
 		}
 		activatedUser = user

@@ -61,6 +61,8 @@ func (a *application) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 func GetUserFromContext(ctx context.Context) (*store.User, bool) {
 
 	user, ok := ctx.Value(userContextKey).(*store.User)
+	fmt.Println(user, "a")
+	fmt.Println(ok, "b")
 	if user == nil {
 		return nil, false
 	}
@@ -175,7 +177,7 @@ func (a *application) ActivateUserHandler(w http.ResponseWriter, r *http.Request
 	token := chi.URLParam(r, "token")
 	user, err := a.store.Users.Activate(rcontext, token)
 	if err != nil {
-		fmt.Println(err, "hhhh")
+
 		switch err {
 		case store.ErrNotFound:
 			a.notFoundResponse(w, r, err)
@@ -185,17 +187,16 @@ func (a *application) ActivateUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	fmt.Println(user.ID, user.Username)
 	jwtToken, err := a.auth.GenerateToken(user.ID, user.Username)
 	if err != nil {
 		a.internalServerError(w, r, err)
 		return
 	}
-	fmt.Println(jwtToken)
+	fmt.Println(jwtToken, "  xxx")
 
 	err = writeJSON(w, http.StatusOK, FollowResponse{Message: jwtToken})
 	if err != nil {
-		fmt.Println(err)
+
 		a.internalServerError(w, r, err)
 		return
 	}

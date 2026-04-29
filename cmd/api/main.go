@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -65,7 +64,6 @@ func main() {
 	defer db.Close()
 
 	store := store.NewStorage(db)
-	fmt.Print(store)
 
 	var mailClient mailer.Client
 	switch {
@@ -95,7 +93,6 @@ func main() {
 
 	mux := app.mount()
 	err = app.run(mux)
-	fmt.Print("bye")
 
 	if err != nil {
 		log.Fatal(err)
