@@ -12,6 +12,11 @@ func (app *application) notFoundResponse(w http.ResponseWriter, r *http.Request,
 
 	writeJSONError(w, http.StatusNotFound, "not found")
 }
+
+func (app *application) forbiddenResponse(w http.ResponseWriter, r *http.Request, err error) {
+
+	writeJSONError(w, http.StatusForbidden, "forbidden")
+}
 func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
 
 	writeJSONError(w, http.StatusBadRequest, err.Error())

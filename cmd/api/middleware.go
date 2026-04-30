@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -98,4 +99,39 @@ func (a *application) BasicAuthMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 
 	})
+}
+
+func (a *application) checkPostOwnership(rolename string, next http.HandlerFunc) http.HandlerFunc {
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Pre-processing logic (e.g., checking headers)
+		user, ok := r.Context().Value(userContextKey).(*store.User)
+		fmt.Println(user)
+		if !ok || user == nil {
+			a.unauthorizedErrorResponse(w, r, errors.New("user missing from context"))
+			return
+		}
+		post, ok := r.Context().Value(postContextKey).(*store.Post)
+		if !ok || post == nil {
+			a.notFoundResponse(w, r, errors.New("post missing from context"))
+			return
+		}
+		if user.ID == post.UserID {
+			next.ServeHTTP(w, r)
+			return
+		}
+		role, err := a.store.Roles.GetByRolename(r.Context(), rolename)
+		if err != nil {
+			a.internalServerError(w, r, err)
+			return
+		}
+		if user.Role >= role.Level {
+			next.ServeHTTP(w, r)
+			return
+		} else {
+			a.forbiddenResponse(w, r, errors.New(""))
+		}
+
+	})
+
 }

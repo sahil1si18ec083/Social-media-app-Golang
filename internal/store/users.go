@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -18,6 +19,7 @@ type User struct {
 	UpdatedAt string   `json:"updated_at"`
 	Email     string   `json:"email"`
 	IsActive  bool     `json:"activated"`
+	Role      int64    `json:"role"`
 }
 type Password struct {
 	Text *string
@@ -29,13 +31,14 @@ type UsersStore struct {
 }
 
 func (s *UsersStore) Create(ctx context.Context, user *User, tx *sql.Tx) error {
-	query := `INSERT INTO users (username, password_hash, email) VALUES ($1, $2, $3) RETURNING id, created_at`
+	query := `INSERT INTO users (username, password_hash, email, role_id) VALUES ($1, $2, $3,$4) RETURNING id, created_at`
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
-	err := tx.QueryRowContext(ctx, query, user.Username, user.Password.Hash, user.Email).Scan(
+	err := tx.QueryRowContext(ctx, query, user.Username, user.Password.Hash, user.Email, user.Role).Scan(
 		&user.ID,
 		&user.CreatedAt,
 	)
+
 	if err != nil {
 		return err
 	}
@@ -56,7 +59,7 @@ func (p *Password) SetPassword(text string, user *User) error {
 }
 
 func (s *UsersStore) GetById(ctx context.Context, userId string) (*User, error) {
-	query := `SELECT email, username,id, created_at, updated_at, password_hash from Users where id =$1`
+	query := `SELECT email, username,id, created_at, updated_at, password_hash,role_id from Users where id =$1`
 	var user User
 	err := s.db.QueryRowContext(ctx, query, userId).Scan(
 		&user.Email,
@@ -65,6 +68,7 @@ func (s *UsersStore) GetById(ctx context.Context, userId string) (*User, error) 
 		&user.CreatedAt,
 		&user.UpdatedAt,
 		&user.Password.Hash,
+		&user.Role,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -76,7 +80,7 @@ func (s *UsersStore) GetById(ctx context.Context, userId string) (*User, error) 
 	return &user, nil
 }
 func (s *UsersStore) GetByUsername(ctx context.Context, username string) (*User, error) {
-	query := `SELECT email, username,id, created_at, updated_at, password_hash from Users where username =$1`
+	query := `SELECT email, username,id, created_at, updated_at, password_hash,role_id from Users where username =$1`
 	var user User
 	err := s.db.QueryRowContext(ctx, query, username).Scan(
 		&user.Email,
@@ -85,6 +89,7 @@ func (s *UsersStore) GetByUsername(ctx context.Context, username string) (*User,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 		&user.Password.Hash,
+		&user.Role,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -100,6 +105,8 @@ func (s *UsersStore) CreateAndInvite(ctx context.Context, user *User, token stri
 	return withTx(s.db, ctx, func(tx *sql.Tx) error {
 
 		if err := s.Create(ctx, user, tx); err != nil {
+			fmt.Println(err)
+			fmt.Println("yoo")
 			return err
 		}
 		if err := s.CreateUserInvitation(ctx, user, tx, token, exp); err != nil {

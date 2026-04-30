@@ -26,21 +26,24 @@ func (a *application) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 
 	err := readJSON(w, r, &payload)
 	if err != nil {
+		fmt.Println(err)
 
 		a.badRequestResponse(w, r, err)
 		return
 	}
 	err = Validate.Struct(&payload)
 	if err != nil {
+		fmt.Println(err)
 		a.badRequestResponse(w, r, err)
 		return
 	}
 
-	user := store.User{Username: payload.Username, Email: payload.Email}
+	user := store.User{Username: payload.Username, Email: payload.Email, Role: 1}
 
 	err = user.Password.SetPassword(payload.Password, &user)
 	if err != nil {
 
+		fmt.Println(err)
 		a.internalServerError(w, r, err)
 		return
 	}
@@ -53,7 +56,7 @@ func (a *application) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 
 	err = a.store.Users.CreateAndInvite(r.Context(), &user, hashToken, expiry_time)
 	if err != nil {
-
+		fmt.Println(err)
 		a.internalServerError(w, r, err)
 		return
 	}
@@ -69,6 +72,7 @@ func (a *application) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 	_, err = a.mailer.Send(mailer.UserWelcomeTemplate, user.Username, user.Email, vars, !isProdEnv)
 
 	if err != nil {
+		fmt.Println(err)
 
 		a.internalServerError(w, r, err)
 		return
@@ -76,7 +80,7 @@ func (a *application) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 
 	err = writeJSON(w, http.StatusOK, "Activation URL send")
 	if err != nil {
-
+		fmt.Println(err)
 		a.internalServerError(w, r, err)
 		return
 	}
