@@ -1,15 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/auth"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/db"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/env"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/mailer"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
+	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store/cache"
 
 	_ "github.com/lib/pq"
 )
@@ -55,6 +58,12 @@ func main() {
 				fromEmail: env.GetString("FROM_EMAIL_SG", "sk2000jee@gmail.com"),
 			},
 		},
+		redisCfg: redisConfig{
+			addr:    env.GetString("REDIS_ADDR", "localhost:6379"),
+			pw:      env.GetString("REDIS_PW", ""),
+			db:      env.GetInt("REDIS_DB", 0),
+			enabled: env.GetBool("REDIS_ENABLED", false),
+		},
 	}
 	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)
 	if err != nil {
@@ -63,8 +72,13 @@ func main() {
 	}
 	defer db.Close()
 
-	store := store.NewStorage(db)
+	var rdb *redis.Client
+	if cfg.redisCfg.enabled {
+		rdb = cache.NewRedisClient(cfg.redisCfg.addr, cfg.redisCfg.pw, cfg.redisCfg.db)
+		fmt.Println("redis cache connection established")
 
+		defer rdb.Close()
+	}
 	var mailClient mailer.Client
 	switch {
 	case cfg.mail.mailTrap.username != "" && cfg.mail.mailTrap.password != "":
@@ -84,11 +98,15 @@ func main() {
 		log.Fatal(err)
 	}
 	jwtClient := auth.NewJWT(cfg.auth.token.secretKey, cfg.auth.token.exp)
+
+	store := store.NewStorage(db)
+	cacheStorage := cache.NewRedisStorage(rdb)
 	app := &application{
-		config: cfg,
-		store:  store,
-		mailer: mailClient,
-		auth:   jwtClient,
+		config:       cfg,
+		store:        store,
+		mailer:       mailClient,
+		auth:         jwtClient,
+		cacheStorage: cacheStorage,
 	}
 
 	mux := app.mount()

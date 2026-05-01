@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
@@ -37,14 +38,36 @@ func (a *application) AuthTokenMiddleware(next http.Handler) http.Handler {
 			a.unauthorizedErrorResponse(w, r, fmt.Errorf("authorization header is malformed"))
 			return
 		}
-		user, err := a.store.Users.GetById(r.Context(), claims.Subject)
+		int64val, err := strconv.ParseInt(claims.Subject, 10, 64)
+
+		user, err := a.cacheStorage.Users.Get(r.Context(), int64val)
 		if err != nil {
-			a.unauthorizedErrorResponse(w, r, errors.New("invalid credentials"))
+			// fmt.Println("aa ja")
+			a.internalServerError(w, r, err)
 			return
 		}
+		// fmt.Println("yoo")
+		// fmt.Println(user)
+		var storeduser *store.User
+		if user != nil {
+			// Cache hit
+			fmt.Println("hit")
+			storeduser = user
+		} else {
+			// Cache miss
+			fmt.Println("miss")
+			storeduser, err = a.store.Users.GetById(r.Context(), claims.Subject)
+			if err != nil {
+				a.unauthorizedErrorResponse(w, r, errors.New("invalid credentials"))
+				return
+			}
 
+			err = a.cacheStorage.Users.Set(r.Context(), storeduser)
+			fmt.Println(err, "hhh")
+		}
+		// fmt.Println(storeduser, "4jj")
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, userContextKey, user)
+		ctx = context.WithValue(ctx, userContextKey, storeduser)
 		next.ServeHTTP(w, r.WithContext(ctx))
 
 	})
@@ -106,7 +129,7 @@ func (a *application) checkPostOwnership(rolename string, next http.HandlerFunc)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Pre-processing logic (e.g., checking headers)
 		user, ok := r.Context().Value(userContextKey).(*store.User)
-		fmt.Println(user)
+		// fmt.Println(user)s
 		if !ok || user == nil {
 			a.unauthorizedErrorResponse(w, r, errors.New("user missing from context"))
 			return

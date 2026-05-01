@@ -22,15 +22,43 @@ type FollowResponse struct {
 }
 
 func (a *application) GetUserHandler(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "userID")
 
-	rcontext := r.Context()
-	user, ok := GetUserFromContext(rcontext)
-	if !ok {
-		a.internalServerError(w, r, errors.New("post missing from context"))
-		return // VERY IMPORTANT
+	userIDInt, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		a.badRequestResponse(w, r, err)
+		return
 	}
 
-	err := writeJSON(w, http.StatusOK, user)
+	var user *store.User
+
+	user, err = a.cacheStorage.Users.Get(r.Context(), userIDInt)
+	if err != nil {
+		a.internalServerError(w, r, err)
+		return
+	}
+
+	if user != nil {
+		fmt.Println("hit")
+	} else {
+		fmt.Println("miss")
+
+		user, err = a.store.Users.GetById(r.Context(), userID)
+		if err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				a.notFoundResponse(w, r, err)
+				return
+			}
+			a.internalServerError(w, r, err)
+			return
+		}
+
+		if err := a.cacheStorage.Users.Set(r.Context(), user); err != nil {
+			fmt.Println(err, "cache set error")
+		}
+	}
+
+	err = writeJSON(w, http.StatusOK, user)
 	if err != nil {
 		a.internalServerError(w, r, err)
 		return

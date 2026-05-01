@@ -11,14 +11,16 @@ import (
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/auth"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/mailer"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
+	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store/cache"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 type application struct {
-	config config
-	store  store.Storage
-	mailer mailer.Client
-	auth   auth.Authenticator
+	config       config
+	store        store.Storage
+	mailer       mailer.Client
+	auth         auth.Authenticator
+	cacheStorage cache.Storage
 }
 type dbConfig struct {
 	addr         string
@@ -33,6 +35,7 @@ type config struct {
 	mail        mailConfig
 	env         string
 	frontendURL string
+	redisCfg    redisConfig
 }
 type authConfig struct {
 	token tokenConfig
@@ -57,6 +60,13 @@ type mailTrapConfig struct {
 	port      int
 	username  string
 	password  string
+}
+
+type redisConfig struct {
+	addr    string
+	pw      string
+	db      int
+	enabled bool
 }
 
 func (app *application) mount() http.Handler {
