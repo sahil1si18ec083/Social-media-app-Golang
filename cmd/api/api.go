@@ -10,6 +10,7 @@ import (
 	_ "github.com/sahil1si18ec083/Social-media-app-Golang/docs"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/auth"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/mailer"
+	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/ratelimiter"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store/cache"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
@@ -21,6 +22,7 @@ type application struct {
 	mailer       mailer.Client
 	auth         auth.Authenticator
 	cacheStorage cache.Storage
+	ratelimiter  ratelimiter.Limiter
 }
 type dbConfig struct {
 	addr         string
@@ -36,6 +38,12 @@ type config struct {
 	env         string
 	frontendURL string
 	redisCfg    redisConfig
+	ratelimiter rateLimitConfig
+}
+type rateLimitConfig struct {
+	RequestsPerTimeFrame int
+	RateLimiterEnabled   bool
+	TimeFrame            time.Duration
 }
 type authConfig struct {
 	token tokenConfig

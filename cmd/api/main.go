@@ -16,6 +16,7 @@ import (
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/db"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/env"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/mailer"
+	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/ratelimiter"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store"
 	"github.com/sahil1si18ec083/Social-media-app-Golang/internal/store/cache"
 
@@ -69,6 +70,11 @@ func main() {
 			db:      env.GetInt("REDIS_DB", 0),
 			enabled: env.GetBool("REDIS_ENABLED", false),
 		},
+		ratelimiter: rateLimitConfig{
+			RequestsPerTimeFrame: env.GetInt("RequestsPerTimeFrame", 20),
+			RateLimiterEnabled:   env.GetBool("RateLimiterEnabled", false),
+			TimeFrame:            time.Second * 1,
+		},
 	}
 	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)
 	if err != nil {
@@ -106,12 +112,15 @@ func main() {
 
 	store := store.NewStorage(db)
 	cacheStorage := cache.NewRedisStorage(rdb)
+
+	ratelimiter := ratelimiter.NewFixedWindowRateLimiter(cfg.ratelimiter.RequestsPerTimeFrame, cfg.ratelimiter.TimeFrame)
 	app := &application{
 		config:       cfg,
 		store:        store,
 		mailer:       mailClient,
 		auth:         jwtClient,
 		cacheStorage: cacheStorage,
+		ratelimiter:  ratelimiter,
 	}
 
 	mux := app.mount()
