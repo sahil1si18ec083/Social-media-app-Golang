@@ -128,7 +128,7 @@ func (app *application) mount() http.Handler {
 	return r
 }
 
-func (app *application) run(mux http.Handler) error {
+func (app *application) run(mux http.Handler) *http.Server {
 
 	srv := http.Server{
 		Addr:         app.config.addr,
@@ -138,6 +138,6 @@ func (app *application) run(mux http.Handler) error {
 		IdleTimeout:  time.Minute,
 	}
 	log.Println("server started at ", app.config.addr)
-	return srv.ListenAndServe()
+	return &srv
 
 }

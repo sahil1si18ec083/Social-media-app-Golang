@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"time"
 )
 
 // HealthResponse represents the health check response payload.
@@ -22,6 +23,7 @@ type HealthResponse struct {
 //	@Router			/health [get]
 func (a *application) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
+	time.Sleep(time.Second * 3)
 	data := HealthResponse{
 		Status:  "ok",
 		Version: "version",

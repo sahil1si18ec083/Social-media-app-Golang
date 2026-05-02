@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -110,10 +115,33 @@ func main() {
 	}
 
 	mux := app.mount()
-	err = app.run(mux)
+	srv := app.run(mux)
 
-	if err != nil {
-		log.Fatal(err)
+	serverErr := make(chan error, 1)
+
+	go func() {
+		serverErr <- srv.ListenAndServe()
+	}()
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	select {
+	case err := <-serverErr:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatal(err)
+		}
+	case <-ctx.Done():
+		log.Println("shutdown signal received")
+
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("server shut down gracefully")
 	}
 
 }
