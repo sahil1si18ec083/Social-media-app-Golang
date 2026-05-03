@@ -89,7 +89,7 @@ func (app *application) mount() http.Handler {
 
 	r.Route("/v1", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
-			r.Use(app.BasicAuthMiddleware)
+			// r.Use(app.BasicAuthMiddleware)
 			r.Get("/swagger/*", httpSwagger.Handler(
 				httpSwagger.URL("http://localhost:8080/v1/swagger/doc.json"),
 			))
