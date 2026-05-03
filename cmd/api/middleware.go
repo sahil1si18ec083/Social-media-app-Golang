@@ -158,3 +158,27 @@ func (a *application) checkPostOwnership(rolename string, next http.HandlerFunc)
 	})
 
 }
+
+func (a *application) RateLimitMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Pre-processing logic (e.g., checking headers)
+		user, ok := r.Context().Value(userContextKey).(*store.User)
+		// fmt.Println(user)s
+		if !ok || user == nil {
+			a.unauthorizedErrorResponse(w, r, errors.New("user missing from context"))
+			return
+		}
+		userId := user.ID
+		key := strconv.FormatInt(userId, 10)
+		if !a.ratelimiter.Allow(key) {
+			// Return 429 Too Many Requests with helpful headers
+			//  w.Header().Set("RateLimit-Remaining", strconv.Itoa(info.Remaining))
+			w.Header().Set("X-RateLimit-Limit", strconv.Itoa(a.config.ratelimiter.RequestsPerTimeFrame))
+			http.Error(w, "Rate limit exceeded. Please slow down.", http.StatusTooManyRequests)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+
+	})
+}

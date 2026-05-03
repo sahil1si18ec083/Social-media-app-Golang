@@ -73,8 +73,9 @@ func main() {
 		ratelimiter: rateLimitConfig{
 			RequestsPerTimeFrame: env.GetInt("RequestsPerTimeFrame", 20),
 			RateLimiterEnabled:   env.GetBool("RateLimiterEnabled", false),
-			TimeFrame:            time.Second * 1,
+			TimeFrame:            time.Hour * 1,
 		},
+		// todo
 	}
 	db, err := db.New(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)
 	if err != nil {
