@@ -170,15 +170,17 @@ func (a *application) RateLimitMiddleware(next http.Handler) http.Handler {
 		}
 		userId := user.ID
 		key := strconv.FormatInt(userId, 10)
-		if !a.ratelimiter.Allow(key) {
-			// Return 429 Too Many Requests with helpful headers
-			//  w.Header().Set("RateLimit-Remaining", strconv.Itoa(info.Remaining))
-			w.Header().Set("X-RateLimit-Limit", strconv.Itoa(a.config.ratelimiter.RequestsPerTimeFrame))
+		allowcheck, remaining, resetAfter := a.ratelimiter.Allow(key)
+		w.Header().Set("RateLimit-Remaining", strconv.Itoa(remaining))
+		w.Header().Set("X-RateLimit-Limit", strconv.Itoa(a.config.ratelimiter.RequestsPerTimeFrame))
+
+		if !allowcheck {
+			w.Header().Set("Retry-After", strconv.Itoa(int(resetAfter.Seconds())))
 			http.Error(w, "Rate limit exceeded. Please slow down.", http.StatusTooManyRequests)
 			return
+		} else {
+			next.ServeHTTP(w, r)
 		}
-
-		next.ServeHTTP(w, r)
 
 	})
 }

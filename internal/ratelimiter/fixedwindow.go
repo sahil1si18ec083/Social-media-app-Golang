@@ -1,7 +1,6 @@
 package ratelimiter
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
@@ -27,29 +26,26 @@ func NewFixedWindowRateLimiter(limit int, windowSize time.Duration) *FixedWindow
 
 }
 
-func (f *FixedWindowRateLimiter) Allow(ip string) bool {
-
+func (f *FixedWindowRateLimiter) Allow(ip string) (bool, int, time.Duration) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+
 	now := time.Now()
 	val, exists := f.counters[ip]
-	// fmt.Println(exists)
-	fmt.Println(len(f.counters))
-	fmt.Println(" wb")
+
 	if !exists || now.After(val.expiresAt) {
-		// fmt.Println(ip, "   ip")
+		expiresAt := now.Add(f.windowSize)
 		f.counters[ip] = &CurrentWindow{
 			count:     1,
-			expiresAt: now.Add(f.windowSize),
+			expiresAt: expiresAt,
 		}
-		return true
-
+		return true, f.limit - 1, time.Until(expiresAt)
 	}
+
 	if val.count < f.limit {
 		val.count++
-		return true
+		return true, f.limit - val.count, time.Until(val.expiresAt)
 	}
 
-	return false
-
+	return false, 0, time.Until(val.expiresAt)
 }
