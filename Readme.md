@@ -231,10 +231,3 @@ System:
 - User activation must happen before login succeeds.
 - Redis is optional and controlled by `REDIS_ENABLED`.
 
-## Future Improvements
-
-- Refresh tokens
-- Better role/permission modeling
-- Test coverage
-- Profile update endpoints
-- Cache invalidation for more write paths
