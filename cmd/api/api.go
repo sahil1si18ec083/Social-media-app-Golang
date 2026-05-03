@@ -99,6 +99,7 @@ func (app *application) mount() http.Handler {
 
 		r.Route("/authentication", func(r chi.Router) {
 			r.Post("/user", app.RegisterUserHandler)
+			r.Post("/login", app.LoginUserHandler)
 			// r.Post("/token", app.createTokenHandler)
 		})
 

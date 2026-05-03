@@ -59,9 +59,10 @@ func (p *Password) SetPassword(text string, user *User) error {
 }
 
 func (s *UsersStore) GetById(ctx context.Context, userId string) (*User, error) {
-	query := `SELECT email, username,id, created_at, updated_at, password_hash,role_id from Users where id =$1`
+	query := `SELECT activated, email, username,id, created_at, updated_at, password_hash,role_id from Users where id =$1`
 	var user User
 	err := s.db.QueryRowContext(ctx, query, userId).Scan(
+		&user.IsActive,
 		&user.Email,
 		&user.Username,
 		&user.ID,
@@ -80,9 +81,10 @@ func (s *UsersStore) GetById(ctx context.Context, userId string) (*User, error) 
 	return &user, nil
 }
 func (s *UsersStore) GetByUsername(ctx context.Context, username string) (*User, error) {
-	query := `SELECT email, username,id, created_at, updated_at, password_hash,role_id from Users where username =$1`
+	query := `SELECT activated, email, username,id, created_at, updated_at, password_hash,role_id from Users where username =$1`
 	var user User
 	err := s.db.QueryRowContext(ctx, query, username).Scan(
+		&user.IsActive,
 		&user.Email,
 		&user.Username,
 		&user.ID,
@@ -170,6 +172,7 @@ func (s *UsersStore) Activate(ctx context.Context, token string) (*User, error) 
 
 			return err
 		}
+		fmt.Println("check")
 		activatedUser = user
 
 		return nil
@@ -238,4 +241,29 @@ func (s *UsersStore) deleteUserInvitations(ctx context.Context, tx *sql.Tx, user
 	}
 	return nil
 
+}
+
+// New Request
+
+func (s *UsersStore) GetByEmail(ctx context.Context, email string) (*User, error) {
+	query := `SELECT activated,email, username,id, created_at, updated_at, password_hash,role_id from Users where email =$1`
+	var user User
+	err := s.db.QueryRowContext(ctx, query, email).Scan(
+		&user.IsActive,
+		&user.Email,
+		&user.Username,
+		&user.ID,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&user.Password.Hash,
+		&user.Role,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &user, nil
 }

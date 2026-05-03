@@ -20,6 +20,7 @@ type Storage struct {
 		GetByUsername(context.Context, string) (*User, error)
 		CreateAndInvite(context.Context, *User, string, time.Duration) error
 		Activate(context.Context, string) (*User, error)
+		GetByEmail(context.Context, string) (*User, error)
 	}
 	Comments interface {
 		Create(context.Context, *Comment) error
