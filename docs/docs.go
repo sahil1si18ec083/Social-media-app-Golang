@@ -4,225 +4,557 @@ package docs
 import "github.com/swaggo/swag"
 
 const docTemplate = `{
-    "schemes": {{ marshal .Schemes }},
-    "swagger": "2.0",
-    "info": {
-        "description": "{{escape .Description}}",
-        "title": "{{.Title}}",
-        "contact": {},
-        "version": "{{.Version}}"
-    },
-    "host": "{{.Host}}",
-    "basePath": "{{.BasePath}}",
-    "paths": {
-        "/health": {
-            "get": {
-                "description": "Returns server health status and version information",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "system"
-                ],
-                "summary": "Health check",
-                "operationId": "health-check",
-                "responses": {
-                    "200": {
-                        "description": "Server is healthy",
-                        "schema": {
-                            "$ref": "#/definitions/main.HealthResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/users/feed": {
-            "get": {
-                "description": "Returns feed posts for the authenticated user including posts from followed users",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Get user feed",
-                "operationId": "get-user-feed",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Number of posts to return (default 20)",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Pagination offset",
-                        "name": "offset",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Sort order: asc or desc",
-                        "name": "sort",
-                        "in": "query"
-                    },
-                    {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "collectionFormat": "csv",
-                        "description": "Filter by tags (repeat parameter)",
-                        "name": "tags",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Search text in title or content",
-                        "name": "search",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Feed returned successfully",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/store.PostWithMetadata"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    },
-    "definitions": {
-        "main.HealthResponse": {
-            "type": "object",
-            "properties": {
-                "status": {
-                    "type": "string",
-                    "example": "ok"
-                },
-                "version": {
-                    "type": "string",
-                    "example": "1.0.0"
-                }
-            }
-        },
-        "store.Comment": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "post_id": {
-                    "type": "integer"
-                },
-                "user": {
-                    "$ref": "#/definitions/store.User"
-                },
-                "user_id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "store.PostWithMetadata": {
-            "type": "object",
-            "properties": {
-                "comment": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/store.Comment"
-                    }
-                },
-                "comments_count": {
-                    "type": "integer"
-                },
-                "content": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "tags": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "title": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "integer"
-                },
-                "version": {
-                    "type": "integer"
-                }
-            }
-        },
-        "store.User": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        }
+  "schemes": {{ marshal .Schemes }},
+  "swagger": "2.0",
+  "info": {
+    "description": "{{escape .Description}}",
+    "title": "{{.Title}}",
+    "contact": {},
+    "version": "{{.Version}}"
+  },
+  "host": "{{.Host}}",
+  "basePath": "{{.BasePath}}",
+  "securityDefinitions": {
+    "BearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "Use format: Bearer <token>"
     }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "description": "Returns server health status and version information",
+        "produces": ["application/json"],
+        "tags": ["system"],
+        "summary": "Health check",
+        "operationId": "health-check",
+        "responses": {
+          "200": {
+            "description": "Server is healthy",
+            "schema": { "$ref": "#/definitions/main.HealthResponse" }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "/authentication/user": {
+      "post": {
+        "tags": ["authentication"],
+        "summary": "Register user",
+        "description": "Creates a user and sends an activation link",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": { "$ref": "#/definitions/main.RegisterUserPayload" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Activation email/link sent", "schema": { "type": "string" } },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "/authentication/login": {
+      "post": {
+        "tags": ["authentication"],
+        "summary": "Login user",
+        "description": "Authenticates a user with email and password and returns a JWT token",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": { "$ref": "#/definitions/main.LoginUserPayload" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JWT issued successfully",
+            "schema": { "$ref": "#/definitions/main.FollowResponse" }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "/users/activate/{token}": {
+      "put": {
+        "tags": ["users"],
+        "summary": "Activate user",
+        "description": "Activates a user account using the invitation token and returns a JWT token",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "type": "string",
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "description": "Activation token"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User activated successfully",
+            "schema": { "$ref": "#/definitions/main.FollowResponse" }
+          },
+          "404": {
+            "description": "Token not found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "/users/feed": {
+      "get": {
+        "description": "Returns feed posts for the authenticated user including posts from followed users",
+        "produces": ["application/json"],
+        "tags": ["users"],
+        "summary": "Get user feed",
+        "operationId": "get-user-feed",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "type": "integer", "description": "Number of posts to return (default 20)", "name": "limit", "in": "query" },
+          { "type": "integer", "description": "Pagination offset", "name": "offset", "in": "query" },
+          { "type": "string", "description": "Sort order: asc or desc", "name": "sort", "in": "query" },
+          {
+            "type": "array",
+            "items": { "type": "string" },
+            "collectionFormat": "csv",
+            "description": "Filter by tags (repeat parameter)",
+            "name": "tags",
+            "in": "query"
+          },
+          { "type": "string", "description": "Search text in title or content", "name": "search", "in": "query" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feed returned successfully",
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/store.PostWithMetadata" }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userID}": {
+      "get": {
+        "tags": ["users"],
+        "summary": "Get user by ID",
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "type": "integer", "name": "userID", "in": "path", "required": true, "description": "User ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "User returned successfully",
+            "schema": { "$ref": "#/definitions/store.User" }
+          },
+          "404": {
+            "description": "User not found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userID}/follow": {
+      "put": {
+        "tags": ["users"],
+        "summary": "Follow user",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "type": "integer", "name": "userID", "in": "path", "required": true, "description": "Authenticated user route context" },
+          { "in": "body", "name": "body", "required": true, "schema": { "$ref": "#/definitions/main.FollowRequestPayload" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Followed successfully",
+            "schema": { "$ref": "#/definitions/main.FollowResponse" }
+          },
+          "404": {
+            "description": "Target user not found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          },
+          "409": {
+            "description": "Already following or invalid follow",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userID}/unfollow": {
+      "put": {
+        "tags": ["users"],
+        "summary": "Unfollow user",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "type": "integer", "name": "userID", "in": "path", "required": true, "description": "Authenticated user route context" },
+          { "in": "body", "name": "body", "required": true, "schema": { "$ref": "#/definitions/main.FollowRequestPayload" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unfollowed successfully",
+            "schema": { "$ref": "#/definitions/main.FollowResponse" }
+          },
+          "404": {
+            "description": "Follow relationship not found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "/posts": {
+      "post": {
+        "tags": ["posts"],
+        "summary": "Create post",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "in": "body", "name": "body", "required": true, "schema": { "$ref": "#/definitions/main.CreatePostPayload" } }
+        ],
+        "responses": {
+          "201": {
+            "description": "Post created successfully",
+            "schema": { "$ref": "#/definitions/store.Post" }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "/posts/{postID}": {
+      "get": {
+        "tags": ["posts"],
+        "summary": "Get post by ID",
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "type": "integer", "name": "postID", "in": "path", "required": true, "description": "Post ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post returned successfully",
+            "schema": { "$ref": "#/definitions/store.Post" }
+          },
+          "404": {
+            "description": "Post not found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["posts"],
+        "summary": "Update post",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "type": "integer", "name": "postID", "in": "path", "required": true, "description": "Post ID" },
+          { "in": "body", "name": "body", "required": true, "schema": { "$ref": "#/definitions/main.UpdatePostPayload" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post updated successfully",
+            "schema": { "$ref": "#/definitions/store.Post" }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["posts"],
+        "summary": "Delete post",
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "type": "integer", "name": "postID", "in": "path", "required": true, "description": "Post ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post deleted successfully",
+            "schema": { "$ref": "#/definitions/main.DeletePostResponse" }
+          },
+          "403": {
+            "description": "Forbidden",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          },
+          "404": {
+            "description": "Post not found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "/posts/{postID}/comments": {
+      "post": {
+        "tags": ["comments"],
+        "summary": "Create comment on post",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "type": "integer", "name": "postID", "in": "path", "required": true, "description": "Post ID" },
+          { "in": "body", "name": "body", "required": true, "schema": { "$ref": "#/definitions/main.CreateCommentPayload" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comment created successfully",
+            "schema": { "$ref": "#/definitions/store.Post" }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "main.HealthResponse": {
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "example": "ok" },
+        "version": { "type": "string", "example": "1.0.0" }
+      }
+    },
+    "main.RegisterUserPayload": {
+      "type": "object",
+      "required": ["username", "email", "password"],
+      "properties": {
+        "username": { "type": "string" },
+        "email": { "type": "string" },
+        "password": { "type": "string" }
+      }
+    },
+    "main.LoginUserPayload": {
+      "type": "object",
+      "required": ["email", "password"],
+      "properties": {
+        "email": { "type": "string" },
+        "password": { "type": "string" }
+      }
+    },
+    "main.FollowRequestPayload": {
+      "type": "object",
+      "required": ["user_id"],
+      "properties": {
+        "user_id": { "type": "integer" }
+      }
+    },
+    "main.FollowResponse": {
+      "type": "object",
+      "properties": {
+        "message": { "type": "string" }
+      }
+    },
+    "main.CreatePostPayload": {
+      "type": "object",
+      "required": ["title", "content"],
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "main.UpdatePostPayload": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" }
+      }
+    },
+    "main.DeletePostResponse": {
+      "type": "object",
+      "properties": {
+        "message": { "type": "string" }
+      }
+    },
+    "main.CreateCommentPayload": {
+      "type": "object",
+      "required": ["content", "user_id"],
+      "properties": {
+        "content": { "type": "string" },
+        "user_id": { "type": "integer" }
+      }
+    },
+    "store.User": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "username": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" },
+        "email": { "type": "string" },
+        "activated": { "type": "boolean" },
+        "role": { "type": "integer" }
+      }
+    },
+    "store.Comment": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "content": { "type": "string" },
+        "user_id": { "type": "integer" },
+        "post_id": { "type": "integer" },
+        "created_at": { "type": "string" },
+        "user": { "$ref": "#/definitions/store.User" }
+      }
+    },
+    "store.Post": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "user_id": { "type": "integer" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" },
+        "comment": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/store.Comment" }
+        },
+        "version": { "type": "integer" }
+      }
+    },
+    "store.PostWithMetadata": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "user_id": { "type": "integer" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" },
+        "comment": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/store.Comment" }
+        },
+        "version": { "type": "integer" },
+        "comments_count": { "type": "integer" }
+      }
+    }
+  }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it

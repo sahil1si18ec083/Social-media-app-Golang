@@ -1,147 +1,606 @@
-basePath: /v1
-definitions:
-  main.HealthResponse:
-    properties:
-      status:
-        example: ok
-        type: string
-      version:
-        example: 1.0.0
-        type: string
-    type: object
-  store.Comment:
-    properties:
-      content:
-        type: string
-      created_at:
-        type: string
-      id:
-        type: integer
-      post_id:
-        type: integer
-      user:
-        $ref: '#/definitions/store.User'
-      user_id:
-        type: integer
-    type: object
-  store.PostWithMetadata:
-    properties:
-      comment:
-        items:
-          $ref: '#/definitions/store.Comment'
-        type: array
-      comments_count:
-        type: integer
-      content:
-        type: string
-      created_at:
-        type: string
-      id:
-        type: integer
-      tags:
-        items:
-          type: string
-        type: array
-      title:
-        type: string
-      updated_at:
-        type: string
-      user_id:
-        type: integer
-      version:
-        type: integer
-    type: object
-  store.User:
-    properties:
-      created_at:
-        type: string
-      email:
-        type: string
-      id:
-        type: integer
-      updated_at:
-        type: string
-      username:
-        type: string
-    type: object
-host: localhost:8080
+swagger: "2.0"
 info:
-  contact: {}
   description: Social Media Backend API
   title: Social Media API
+  contact: {}
   version: "1.0"
+host: localhost:8080
+basePath: /v1
+schemes: []
+securityDefinitions:
+  BearerAuth:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: "Use format: Bearer <token>"
 paths:
   /health:
     get:
+      summary: Health check
       description: Returns server health status and version information
-      operationId: health-check
+      tags:
+        - system
       produces:
-      - application/json
+        - application/json
+      operationId: health-check
       responses:
         "200":
           description: Server is healthy
           schema:
-            $ref: '#/definitions/main.HealthResponse'
+            $ref: "#/definitions/main.HealthResponse"
         "500":
           description: Internal server error
           schema:
+            type: object
             additionalProperties:
               type: string
-            type: object
-      summary: Health check
+  /authentication/user:
+    post:
+      summary: Register user
+      description: Creates a user and sends an activation link
       tags:
-      - system
+        - authentication
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/main.RegisterUserPayload"
+      responses:
+        "200":
+          description: Activation email/link sent
+          schema:
+            type: string
+        "400":
+          description: Bad request
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+  /authentication/login:
+    post:
+      summary: Login user
+      description: Authenticates a user with email and password and returns a JWT token
+      tags:
+        - authentication
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/main.LoginUserPayload"
+      responses:
+        "200":
+          description: JWT issued successfully
+          schema:
+            $ref: "#/definitions/main.FollowResponse"
+        "400":
+          description: Bad request
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+  /users/activate/{token}:
+    put:
+      summary: Activate user
+      description: Activates a user account using the invitation token and returns a JWT token
+      tags:
+        - users
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: token
+          required: true
+          type: string
+          description: Activation token
+      responses:
+        "200":
+          description: User activated successfully
+          schema:
+            $ref: "#/definitions/main.FollowResponse"
+        "404":
+          description: Token not found
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: object
+            additionalProperties:
+              type: string
   /users/feed:
     get:
-      description: Returns feed posts for the authenticated user including posts from
-        followed users
-      operationId: get-user-feed
-      parameters:
-      - description: Number of posts to return (default 20)
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination offset
-        in: query
-        name: offset
-        type: integer
-      - description: 'Sort order: asc or desc'
-        in: query
-        name: sort
-        type: string
-      - collectionFormat: csv
-        description: Filter by tags (repeat parameter)
-        in: query
-        items:
-          type: string
-        name: tags
-        type: array
-      - description: Search text in title or content
-        in: query
-        name: search
-        type: string
+      summary: Get user feed
+      description: Returns feed posts for the authenticated user including posts from followed users
+      tags:
+        - users
       produces:
-      - application/json
+        - application/json
+      operationId: get-user-feed
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          type: integer
+          description: Number of posts to return (default 20)
+        - in: query
+          name: offset
+          type: integer
+          description: Pagination offset
+        - in: query
+          name: sort
+          type: string
+          description: "Sort order: asc or desc"
+        - in: query
+          name: tags
+          type: array
+          collectionFormat: csv
+          description: Filter by tags (repeat parameter)
+          items:
+            type: string
+        - in: query
+          name: search
+          type: string
+          description: Search text in title or content
       responses:
         "200":
           description: Feed returned successfully
           schema:
-            items:
-              $ref: '#/definitions/store.PostWithMetadata'
             type: array
+            items:
+              $ref: "#/definitions/store.PostWithMetadata"
         "400":
           description: Bad request
           schema:
+            type: object
             additionalProperties:
               type: string
-            type: object
         "500":
           description: Internal server error
           schema:
+            type: object
             additionalProperties:
               type: string
-            type: object
-      summary: Get user feed
+  /users/{userID}:
+    get:
+      summary: Get user by ID
       tags:
-      - users
-swagger: "2.0"
+        - users
+      produces:
+        - application/json
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          type: integer
+          description: User ID
+      responses:
+        "200":
+          description: User returned successfully
+          schema:
+            $ref: "#/definitions/store.User"
+        "404":
+          description: User not found
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+  /users/{userID}/follow:
+    put:
+      summary: Follow user
+      tags:
+        - users
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          type: integer
+          description: Authenticated user route context
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/main.FollowRequestPayload"
+      responses:
+        "200":
+          description: Followed successfully
+          schema:
+            $ref: "#/definitions/main.FollowResponse"
+        "404":
+          description: Target user not found
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+        "409":
+          description: Already following or invalid follow
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+  /users/{userID}/unfollow:
+    put:
+      summary: Unfollow user
+      tags:
+        - users
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          type: integer
+          description: Authenticated user route context
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/main.FollowRequestPayload"
+      responses:
+        "200":
+          description: Unfollowed successfully
+          schema:
+            $ref: "#/definitions/main.FollowResponse"
+        "404":
+          description: Follow relationship not found
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+  /posts:
+    post:
+      summary: Create post
+      tags:
+        - posts
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/main.CreatePostPayload"
+      responses:
+        "201":
+          description: Post created successfully
+          schema:
+            $ref: "#/definitions/store.Post"
+        "400":
+          description: Bad request
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+  /posts/{postID}:
+    get:
+      summary: Get post by ID
+      tags:
+        - posts
+      produces:
+        - application/json
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: postID
+          required: true
+          type: integer
+          description: Post ID
+      responses:
+        "200":
+          description: Post returned successfully
+          schema:
+            $ref: "#/definitions/store.Post"
+        "404":
+          description: Post not found
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+    patch:
+      summary: Update post
+      tags:
+        - posts
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: postID
+          required: true
+          type: integer
+          description: Post ID
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/main.UpdatePostPayload"
+      responses:
+        "200":
+          description: Post updated successfully
+          schema:
+            $ref: "#/definitions/store.Post"
+        "400":
+          description: Bad request
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+    delete:
+      summary: Delete post
+      tags:
+        - posts
+      produces:
+        - application/json
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: postID
+          required: true
+          type: integer
+          description: Post ID
+      responses:
+        "200":
+          description: Post deleted successfully
+          schema:
+            $ref: "#/definitions/main.DeletePostResponse"
+        "403":
+          description: Forbidden
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+        "404":
+          description: Post not found
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+  /posts/{postID}/comments:
+    post:
+      summary: Create comment on post
+      tags:
+        - comments
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: postID
+          required: true
+          type: integer
+          description: Post ID
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/main.CreateCommentPayload"
+      responses:
+        "200":
+          description: Comment created successfully
+          schema:
+            $ref: "#/definitions/store.Post"
+        "400":
+          description: Bad request
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+definitions:
+  main.HealthResponse:
+    type: object
+    properties:
+      status:
+        type: string
+        example: ok
+      version:
+        type: string
+        example: 1.0.0
+  main.RegisterUserPayload:
+    type: object
+    required:
+      - username
+      - email
+      - password
+    properties:
+      username:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+  main.LoginUserPayload:
+    type: object
+    required:
+      - email
+      - password
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+  main.FollowRequestPayload:
+    type: object
+    required:
+      - user_id
+    properties:
+      user_id:
+        type: integer
+  main.FollowResponse:
+    type: object
+    properties:
+      message:
+        type: string
+  main.CreatePostPayload:
+    type: object
+    required:
+      - title
+      - content
+    properties:
+      title:
+        type: string
+      content:
+        type: string
+      tags:
+        type: array
+        items:
+          type: string
+  main.UpdatePostPayload:
+    type: object
+    properties:
+      title:
+        type: string
+      content:
+        type: string
+  main.DeletePostResponse:
+    type: object
+    properties:
+      message:
+        type: string
+  main.CreateCommentPayload:
+    type: object
+    required:
+      - content
+      - user_id
+    properties:
+      content:
+        type: string
+      user_id:
+        type: integer
+  store.User:
+    type: object
+    properties:
+      id:
+        type: integer
+      username:
+        type: string
+      created_at:
+        type: string
+      updated_at:
+        type: string
+      email:
+        type: string
+      activated:
+        type: boolean
+      role:
+        type: integer
+  store.Comment:
+    type: object
+    properties:
+      id:
+        type: integer
+      content:
+        type: string
+      user_id:
+        type: integer
+      post_id:
+        type: integer
+      created_at:
+        type: string
+      user:
+        $ref: "#/definitions/store.User"
+  store.Post:
+    type: object
+    properties:
+      id:
+        type: integer
+      title:
+        type: string
+      content:
+        type: string
+      user_id:
+        type: integer
+      tags:
+        type: array
+        items:
+          type: string
+      created_at:
+        type: string
+      updated_at:
+        type: string
+      comment:
+        type: array
+        items:
+          $ref: "#/definitions/store.Comment"
+      version:
+        type: integer
+  store.PostWithMetadata:
+    type: object
+    properties:
+      id:
+        type: integer
+      title:
+        type: string
+      content:
+        type: string
+      user_id:
+        type: integer
+      tags:
+        type: array
+        items:
+          type: string
+      created_at:
+        type: string
+      updated_at:
+        type: string
+      comment:
+        type: array
+        items:
+          $ref: "#/definitions/store.Comment"
+      version:
+        type: integer
+      comments_count:
+        type: integer
