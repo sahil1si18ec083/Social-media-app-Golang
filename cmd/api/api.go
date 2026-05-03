@@ -85,6 +85,7 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(app.corsMiddleware)
 
 	r.Route("/v1", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
