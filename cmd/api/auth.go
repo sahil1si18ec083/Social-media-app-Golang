@@ -138,6 +138,7 @@ func (a *application) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		a.internalServerError(w, r, err)
+		fmt.Println("some random line")
 		return
 	}
 
