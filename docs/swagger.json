@@ -1,8 +1,8 @@
 {
   "swagger": "2.0",
   "info": {
-    "description": "Social Media Backend APIss",
-    "title": "Social Media API",
+    "description": "Social Media Backend API",
+    "title": "Social Media APIs",
     "contact": {},
     "version": "1.0"
   },
