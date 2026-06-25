@@ -61,6 +61,7 @@ func (p *Password) SetPassword(text string, user *User) error {
 func (s *UsersStore) GetById(ctx context.Context, userId string) (*User, error) {
 	query := `SELECT activated, email, username,id, created_at, updated_at, password_hash,role_id from Users where id =$1`
 	var user User
+	fmt.Println(User)
 	err := s.db.QueryRowContext(ctx, query, userId).Scan(
 		&user.IsActive,
 		&user.Email,
